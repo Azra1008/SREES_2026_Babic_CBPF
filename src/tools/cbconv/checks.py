@@ -57,7 +57,7 @@ print("\nKonvergencija (max |mismatch| po iteraciji):")
 for k,h in enumerate(hist): print(f"  iter {k}:  {h:.2e}")
 
 # --- SVG krive konvergencije ---
-OUT="/Users/azra/Documents/SREES/SREES_2026_Babic_CBPF/docs/diagrams"
+OUT=os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..","..","..","docs","diagrams"))
 W,H=640,420; x0,y0,w,h=80,340,500,250
 ys=[math.log10(max(v,1e-16)) for v in hist]; ymin,ymax=-14,2
 def PX(i): return x0+ (i/(max(1,len(hist)-1)))*w
