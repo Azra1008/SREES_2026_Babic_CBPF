@@ -1,6 +1,33 @@
-build/
-Out/
+# build artefakti
+/build/
+/bin/
+/Out/
 *.o
-.DS_Store
-~$*
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
 natID.RAMDisk/
+
+# IDE / editori
+.vscode/
+.idea/
+*~
+*.autosave
+
+# OS smeće
+.DS_Store
+Thumbs.db
+
+# LibreOffice / MS Office lock i temp datoteke
+.~lock.*
+~$*
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# ručno skinute natID release arhive
+*.7z

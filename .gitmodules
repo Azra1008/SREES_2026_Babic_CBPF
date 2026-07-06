@@ -1,0 +1,9 @@
+[submodule "external/natID"]
+	path = external/natID
+	url = https://github.com/idzafic/natID
+	shallow = true
+	ignore = untracked
+[submodule "external/dTwin"]
+	path = external/dTwin
+	url = https://github.com/idzafic/dTwin
+	shallow = true
