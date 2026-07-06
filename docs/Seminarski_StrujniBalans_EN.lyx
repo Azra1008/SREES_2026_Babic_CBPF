@@ -1,0 +1,2762 @@
+#LyX file created by tex2lyx 2.5
+\lyxformat 643
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin /Users/azra/Documents/SREES-01/docs/
+\textclass article
+\begin_preamble
+% Seminar paper SREES — Azra Babic (19029) — English version
+% Open in LyX:  File -> Import -> LaTeX (plain)   (or compile: pdflatex, two passes)
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf,skip=6pt]{caption}
+
+
+
+
+\graphicspath{{diagrams/}}
+\setlength{\emergencystretch}{2em}
+
+\title{\textbf{Nonlinear current balance converter:\\ polar coordinates}}
+\author{Azra Babić, index 19029 \\ Course: SREES \\ natID SDK v4.2.0 \textperiodcentered{} dTwin 1.2.53}
+\date{2026}
+
+
+\end_preamble
+\use_default_options false
+\maintain_unincluded_children no
+\language english
+\language_package none
+\inputencoding utf8
+\fontencoding T1
+\font_roman "lmodern" "default"
+\font_sans "default" "default"
+\font_typewriter "lmodern" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_roman_osf false
+\font_sans_osf false
+\font_typewriter_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype true
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize 11
+\spacing single
+\use_hyperref true
+\pdf_bookmarks 0
+\pdf_bookmarksnumbered 0
+\pdf_bookmarksopen 0
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks 0
+\pdf_pdfborder 0
+\pdf_colorlinks 1
+\pdf_backref false
+\pdf_pdfusetitle 0
+\pdf_quoted_options "linkcolor=cbpfblue,citecolor=cbpfblue,urlcolor=cbpfblue"
+\papersize a4
+\use_geometry true
+\leftmargin 2.4cm
+\topmargin 2.4cm
+\rightmargin 2.4cm
+\bottommargin 2.4cm
+\use_package amsmath 2
+\use_package amssymb 2
+\use_package cancel 0
+\use_package esint 1
+\use_package mathdots 0
+\use_package mathtools 0
+\use_package mhchem 0
+\use_package stackrel 0
+\use_package stmaryrd 0
+\use_package undertilde 0
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\crossref_package prettyref
+\use_minted 0
+\use_lineno false
+\customcolor cbpfblue 004388
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\change_bars false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\docbook_table_output 0
+\docbook_mathml_prefix 1
+\docbook_mathml_version 0
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+maketitle
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Abstract
+\noindent
+This paper describes the development and validation of a converter that, starting from a MATPOWER description of an electric power network, generates a nonlinear power flow model in the 
+\emph on
+current balance formulation in polar coordinates
+\emph default
+, intended to be solved in the dTwin environment. The converter is implemented as a C++ plugin for dTwin (natID framework), with the conversion running in a separate worker thread, real-time progress reporting and a graphical interface. The theoretical background of the formulation, the architecture of the converter and a threefold validation on the WSCC 
+\family typewriter
+case9
+\family default
+ test system are presented: the admittance matrix matches the reference model to more than ten significant digits, the equation residuals at the exact solution are of the order of 
+\begin_inset Formula $10^{-13}$
+\end_inset
+
+, and the generated model is successfully solved by the built-in Newton–Raphson solver in four iterations.
+\end_layout
+
+\begin_layout Abstract
+
+\begin_inset VSpace medskip
+\end_inset
+
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+noindent
+\end_layout
+
+\end_inset
+
+
+\series bold
+Keywords:
+\series default
+ power flow, current balance, polar coordinates, Newton–Raphson, Y-bus, dTwin, natID, C++. 
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+The power flow computation is the fundamental calculation in power system analysis: for a given network topology, branch parameters and power injections at the buses, one seeks the voltage magnitudes 
+\begin_inset Formula $V_i$
+\end_inset
+
+ and phase angles 
+\begin_inset Formula $\delta_i$
+\end_inset
+
+ at all buses, and from them the branch power flows and losses. Practically all more advanced analyses rest on this computation — network expansion planning, state estimation, operational security analysis and optimization 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "kundur,milano"
+literal "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Classically, the system of equations is formed through the 
+\emph on
+power balance
+\emph default
+: at every bus the active and reactive power mismatches (
+\begin_inset Formula $\Delta P_i$
+\end_inset
+
+, 
+\begin_inset Formula $\Delta Q_i$
+\end_inset
+
+) must equal zero. An equivalent, but structurally different alternative is the 
+\emph on
+current balance
+\emph default
+ (current injection) formulation, in which the zero is sought in the mismatch of the complex bus current 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "cim"
+literal "false"
+
+\end_inset
+
+. This work uses exactly that formulation, in 
+\series bold
+polar coordinates
+\series default
+: the unknowns remain 
+\begin_inset Formula $V_i$
+\end_inset
+
+ and 
+\begin_inset Formula $\delta_i$
+\end_inset
+
+, as in the classical polar Newton–Raphson procedure 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "tinney"
+literal "false"
+
+\end_inset
+
+, but the equations are algebraically simpler because the voltage of the observed bus does not multiply the whole sum over the neighbouring buses.
+\end_layout
+
+\begin_layout Standard
+The task of this work is not a solver but a 
+\series bold
+converter
+\series default
+: a C++ plugin for the 
+\series bold
+dTwin
+\series default
+ framework which, from a network description in the MATPOWER 
+\family typewriter
+.m
+\family default
+ format 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "matpower"
+literal "false"
+
+\end_inset
+
+, generates a textual 
+\family typewriter
+.dmodl
+\family default
+ nonlinear (NL) model with the current balance equations. The generated model is then solved by dTwin's built-in nonlinear solver (Newton–Raphson). The requirements of the topic are fulfilled in their entirety: 
+\end_layout
+
+\begin_layout Itemize
+implementation in C++ on top of the natID SDK 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "natid"
+literal "false"
+
+\end_inset
+
+; 
+\end_layout
+
+\begin_layout Itemize
+the conversion runs in a 
+\emph on
+separate worker thread
+\emph default
+; 
+\end_layout
+
+\begin_layout Itemize
+the conversion progress is shown in 
+\emph on
+real time
+\emph default
+ on the GUI thread; 
+\end_layout
+
+\begin_layout Itemize
+a graphical interface for choosing the input and output files; 
+\end_layout
+
+\begin_layout Itemize
+delivery in the form of a dynamic library (
+\family typewriter
+dll
+\family default
+/
+\family typewriter
+dylib
+\family default
+/
+\family typewriter
+so
+\family default
+) loaded through the 
+\series bold
+Model 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ Import
+\series default
+ menu. 
+\end_layout
+
+\begin_layout Standard
+The paper is organized as follows. Section
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:teorija"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ derives the mathematical background: the admittance matrix, the current balance equations in polar coordinates, a comparison with the power balance and the Newton–Raphson procedure. Section
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:impl"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ describes the architecture and implementation of the converter, and section
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:rezultati"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ the validation methodology and the results on the 
+\family typewriter
+case9
+\family default
+ test system. Section
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:zakljucak"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ concludes the paper.
+\end_layout
+
+\begin_layout Section
+Theoretical background
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:teorija"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Network model
+\end_layout
+
+\begin_layout Standard
+All quantities are expressed in per-unit (p.u.) with respect to the base power 
+\begin_inset Formula $S_{base}$
+\end_inset
+
+. A branch is modelled by the standard 
+\begin_inset Formula $\pi$
+\end_inset
+
+-scheme: series impedance 
+\begin_inset Formula $r+jx$
+\end_inset
+
+, total shunt susceptance 
+\begin_inset Formula $b$
+\end_inset
+
+ (one half at each end) and, for transformer branches, a complex tap ratio 
+\begin_inset Formula $a = t\,e^{j\varphi}$
+\end_inset
+
+ which covers both magnitude regulation (
+\begin_inset Formula $t$
+\end_inset
+
+) and phase shift (
+\begin_inset Formula $\varphi$
+\end_inset
+
+). Bus shunt elements (compensation) are given as 
+\begin_inset Formula $G_s + jB_s$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Admittance matrix (Y-bus)
+\end_layout
+
+\begin_layout Standard
+The network is compactly described by the admittance matrix 
+\begin_inset Formula $\mathbf{Y}$
+\end_inset
+
+, with the relation 
+\begin_inset Formula $\mathbf{I}=\mathbf{Y}\mathbf{V}$
+\end_inset
+
+, i.e.
+\begin_inset space \space{}
+
+\end_inset
+
+
+\begin_inset Formula $I_i=\sum_k Y_{ik}V_k$
+\end_inset
+
+. For a branch 
+\begin_inset Formula $f$
+\end_inset
+
+–
+\begin_inset Formula $t$
+\end_inset
+
+ with series admittance 
+\begin_inset Formula $y=1/(r+jx)$
+\end_inset
+
+ and shunt admittance 
+\begin_inset Formula $b_{sh}=j\,b/2$
+\end_inset
+
+ the contributions to the admittance matrix read: 
+\begin_inset Formula \begin{equation}
+Y_{ff}\mathrel{+}=\frac{y+b_{sh}}{a\,a^{*}},\qquad
+Y_{tt}\mathrel{+}=y+b_{sh},\qquad
+Y_{ft}\mathrel{+}=-\frac{y}{a^{*}},\qquad
+Y_{tf}\mathrel{+}=-\frac{y}{a}.
+\label{eq:ybus}
+\end{equation}
+\end_inset
+
+Bus shunt elements 
+\begin_inset Formula $(G_s+jB_s)$
+\end_inset
+
+ are added to the corresponding diagonal entry. For real networks the matrix is extremely sparse — the number of nonzero entries grows linearly with the number of branches. In polar form the entries are written as 
+\begin_inset Formula $Y_{ik}=Y_{ik}e^{j\theta_{ik}}$
+\end_inset
+
+ and the voltages as 
+\begin_inset Formula $V_k=V_k e^{j\delta_k}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Current balance equations in polar coordinates
+\end_layout
+
+\begin_layout Standard
+The current that bus 
+\begin_inset Formula $i$
+\end_inset
+
+ receives from the network is computed directly from the admittance matrix: 
+\begin_inset Formula \begin{equation}
+I_i^{calc}=\sum_k Y_{ik}V_k\,e^{j(\theta_{ik}+\delta_k)}
+\quad\Longrightarrow\quad
+\Re\{I_i^{calc}\}=\sum_k Y_{ik}V_k\cos(\theta_{ik}+\delta_k),\qquad
+\Im\{I_i^{calc}\}=\sum_k Y_{ik}V_k\sin(\theta_{ik}+\delta_k).
+\label{eq:icalc}
+\end{equation}
+\end_inset
+
+On the other hand, the current that the bus 
+\begin_inset Quotes eld
+\end_inset
+
+demands
+\begin_inset Quotes erd
+\end_inset
+
+ follows from its specified apparent power 
+\begin_inset Formula $S_i=P_i+jQ_i=V_iI_i^{*}$
+\end_inset
+
+: 
+\begin_inset Formula \begin{equation}
+I_i^{sp}=\left(\frac{S_i}{V_i e^{j\delta_i}}\right)^{*}
+        =\frac{P_i-jQ_i}{V_i}\,e^{j\delta_i}.
+\label{eq:isp}
+\end{equation}
+\end_inset
+
+The balance condition 
+\begin_inset Formula $I_i^{calc}=I_i^{sp}$
+\end_inset
+
+, separated into real and imaginary parts, yields two equations per bus: 
+\begin_inset Formula \begin{align}
+\sum_k Y_{ik}V_k\cos(\theta_{ik}+\delta_k) &= \frac{P_i\cos\delta_i+Q_i\sin\delta_i}{V_i},
+\label{eq:cbre}\\
+\sum_k Y_{ik}V_k\sin(\theta_{ik}+\delta_k) &= \frac{P_i\sin\delta_i-Q_i\cos\delta_i}{V_i}.
+\label{eq:cbim}
+\end{align}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Comparison with the power balance
+\end_layout
+
+\begin_layout Standard
+The classical active power balance equation reads 
+\begin_inset Formula $V_i\sum_k Y_{ik}V_k\cos(\delta_i-\theta_{ik}-\delta_k)=P_i$
+\end_inset
+
+ (analogously for 
+\begin_inset Formula $Q_i$
+\end_inset
+
+). The difference with respect to 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ is structural: in the power balance the voltage of the observed bus 
+\begin_inset Formula $V_i$
+\end_inset
+
+ multiplies the whole sum, so it appears in every term of the residual and in all derivatives; in the current balance the left-hand side is 
+\emph on
+linear
+\emph default
+ in each 
+\begin_inset Formula $V_k$
+\end_inset
+
+, and the nonlinearity in 
+\begin_inset Formula $V_i$
+\end_inset
+
+ is confined to the right-hand side (the 
+\begin_inset Formula $1/V_i$
+\end_inset
+
+ term). The residual and the Jacobian are therefore derived from 
+\series bold
+currents
+\series default
+, which simplifies the analytical derivatives and the implementation 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "cim"
+literal "false"
+
+\end_inset
+
+. Both formulations have the identical solution — one chooses between them according to implementation convenience.
+\end_layout
+
+\begin_layout Subsection
+The Newton–Raphson method
+\end_layout
+
+\begin_layout Standard
+The system 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ is written as 
+\begin_inset Formula $\mathbf{f}(\mathbf{x})=\mathbf{0}$
+\end_inset
+
+ with the vector of unknowns 
+\begin_inset Formula $\mathbf{x}=[\boldsymbol{\delta},\mathbf{V}]$
+\end_inset
+
+ and solved iteratively 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "tinney"
+literal "false"
+
+\end_inset
+
+: 
+\begin_inset Formula \begin{equation}
+\mathbf{J}^{(\nu)}\,\Delta\mathbf{x}^{(\nu)}=-\mathbf{f}(\mathbf{x}^{(\nu)}),
+\qquad
+\mathbf{x}^{(\nu+1)}=\mathbf{x}^{(\nu)}+\Delta\mathbf{x}^{(\nu)},
+\label{eq:nr}
+\end{equation}
+\end_inset
+
+where 
+\begin_inset Formula $\mathbf{J}=\partial(\Delta I^{\Re},\Delta I^{\Im})/\partial(\boldsymbol{\delta},\mathbf{V})$
+\end_inset
+
+ is a sparse Jacobian with the same structure as 
+\begin_inset Formula $\mathbf{Y}$
+\end_inset
+
+. The off-diagonal derivatives follow directly from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:icalc"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ and are particularly simple: 
+\begin_inset Formula \begin{equation}
+\frac{\partial f_i^{\Re}}{\partial \delta_k}=-Y_{ik}V_k\sin(\theta_{ik}+\delta_k),
+\qquad
+\frac{\partial f_i^{\Re}}{\partial V_k}=Y_{ik}\cos(\theta_{ik}+\delta_k),
+\qquad k\neq i,
+\label{eq:jac}
+\end{equation}
+\end_inset
+
+(analogously for 
+\begin_inset Formula $f_i^{\Im}$
+\end_inset
+
+, with 
+\begin_inset Formula $\sin\leftrightarrow\cos$
+\end_inset
+
+ swapped and the sign adjusted), while the diagonal terms additionally receive the contribution of the right-hand side of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+. The starting point is a flat start (
+\begin_inset Formula $V_i=1$
+\end_inset
+
+
+\begin_inset space ~
+
+\end_inset
+
+p.u., 
+\begin_inset Formula $\delta_i=0$
+\end_inset
+
+), and the iterations stop when the largest residual falls below the prescribed tolerance. Near the solution the convergence is quadratic — the number of correct digits roughly doubles in every iteration, which is also confirmed experimentally in section
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:rezultati"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Bus types
+\end_layout
+
+\begin_layout Standard
+Three standard bus types take part in the formulation (table
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:tipovi"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+). At PV buses the voltage magnitude is a fixed parameter and the unknown becomes the reactive generator injection 
+\begin_inset Formula $Q_i^{g}$
+\end_inset
+
+ — in the Jacobian the column of derivatives with respect to 
+\begin_inset Formula $V_i$
+\end_inset
+
+ is replaced by the column of derivatives with respect to 
+\begin_inset Formula $Q_i^{g}$
+\end_inset
+
+, which are likewise simple because 
+\begin_inset Formula $Q_i^{g}$
+\end_inset
+
+ appears only on the right-hand side of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float table
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Tabular 
+<lyxtabular version="3" rows="4" columns="4">
+<features booktabs="true" tabularvalignment="middle" tabularwidth="0pt">
+<column alignment="left" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="left" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Bus type 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Specified 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Unknown 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Equations per bus 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Slack (reference) 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $V_i,\ \delta_i$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+— (
+\begin_inset Formula $P^g_i,Q^g_i$
+\end_inset
+
+ afterwards) 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+0 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PV (generator) 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $P_i,\ |V_i|$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $\delta_i,\ Q_i^{g}$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+2 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ (load) 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $P_i,\ Q_i$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $\delta_i,\ V_i$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+2 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Bus types and the distribution of known and unknown quantities.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:tipovi"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Implementation
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:impl"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Converter architecture
+\end_layout
+
+\begin_layout Standard
+The converter is realized as a 
+\series bold
+dTwin plugin
+\series default
+ (interface 
+\family typewriter
+sc::IPlugin
+\family default
+) and covers the entire path from the input file to a model ready for solving: 
+\begin_inset Formula \begin{equation*}
+\text{MATPOWER \texttt{.m}}
+\;\rightarrow\;
+\text{parsing}
+\;\rightarrow\;
+\text{Y-bus}
+\;\rightarrow\;
+\text{\texttt{.dmodl} NL model}
+\;\rightarrow\;
+\text{dTwin NL solver}.
+\end{equation*}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float figure
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Graphics 
+	filename diagrams/02_tok_konverzije.png
+	width 100line%
+
+\end_inset
+
+ 
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Conversion flow: the plugin parses the network, builds the Y-bus and generates the model; dTwin loads and solves it.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:tok"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+
+\series bold
+Code structure
+\series default
+ (
+\family typewriter
+src/CurrentBalancePlugin/
+\family default
+): 
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+Converter.h
+\family default
+ — the converter core: parsing of the MATPOWER matrices, construction of the Y-bus in the natID type 
+\family typewriter
+dense::CmplxMatrix
+\family default
+, generation of the 
+\family typewriter
+.dmodl
+\family default
+ output; 
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+CBPlugin.cpp
+\family default
+ — implementation of 
+\family typewriter
+sc::IPlugin
+\family default
+ and the export point 
+\family typewriter
+getPluginInterface()
+\family default
+; 
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+WindowPlugin.h
+\family default
+ — the plugin window inside the dTwin environment; 
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+ViewConv.h
+\family default
+ — the graphical interface (file selection, the 
+\emph on
+Convert
+\emph default
+ button, progress indicator, status message) and the multithreading logic. 
+\end_layout
+
+\begin_layout Subsection
+Parsing the MATPOWER format
+\end_layout
+
+\begin_layout Standard
+The input 
+\family typewriter
+.m
+\family default
+ file contains the base power 
+\family typewriter
+baseMVA
+\family default
+ and three matrices: 
+\family typewriter
+bus
+\family default
+ (buses: type, load 
+\begin_inset Formula $P_d,Q_d$
+\end_inset
+
+, shunt 
+\begin_inset Formula $G_s,B_s$
+\end_inset
+
+, initial voltage), 
+\family typewriter
+gen
+\family default
+ (generators: bus, 
+\begin_inset Formula $P_g,Q_g$
+\end_inset
+
+, specified 
+\begin_inset Formula $|V|$
+\end_inset
+
+) and 
+\family typewriter
+branch
+\family default
+ (branches: 
+\begin_inset Formula $r$
+\end_inset
+
+, 
+\begin_inset Formula $x$
+\end_inset
+
+, 
+\begin_inset Formula $b$
+\end_inset
+
+, tap ratio 
+\begin_inset Formula $t$
+\end_inset
+
+ and phase shift 
+\begin_inset Formula $\varphi$
+\end_inset
+
+). The parser tolerates comments and whitespace, maps the bus numbering onto contiguous indices, and normalizes all powers to p.u.
+\begin_inset space \space{}
+
+\end_inset
+
+by dividing by 
+\family typewriter
+baseMVA
+\family default
+. The bus injection is computed as the difference between generation and load, 
+\begin_inset Formula $P_i = P_{g,i}-P_{d,i}$
+\end_inset
+
+, 
+\begin_inset Formula $Q_i = Q_{g,i}-Q_{d,i}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Building the Y-bus matrix
+\end_layout
+
+\begin_layout Standard
+The Y-bus is built in a single pass over the branch list according to 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:ybus"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+, in the complex natID matrix 
+\family typewriter
+dense::CmplxMatrix
+\family default
+; the bus shunt elements are added to the diagonal in a second pass. For the target problem sizes (tens to hundreds of buses) the dense representation is simple and fast enough, and the transition to a sparse structure remains an open direction for larger systems (section
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:diskusija"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Subsection
+Generating the 
+\family typewriter
+.dmodl
+\family default
+ model
+\end_layout
+
+\begin_layout Standard
+The output is a textual dTwin NL model: the variables (
+\begin_inset Formula $\delta_i$
+\end_inset
+
+, 
+\begin_inset Formula $V_i$
+\end_inset
+
+, and 
+\begin_inset Formula $Q_i^g$
+\end_inset
+
+ for PV buses), the parameters and two current balance equations per bus. An example for PQ bus 5 (abbreviated): 
+\size small
+
+\end_layout
+
+\begin_layout Verbatim
+Y_5_5*V_5*cos(th_5_5+d_5)+... = (P_5*cos(d_5)+Q_5*sin(d_5))/V_5
+\end_layout
+
+\begin_layout Verbatim
+Y_5_5*V_5*sin(th_5_5+d_5)+... = (P_5*sin(d_5)-Q_5*cos(d_5))/V_5
+\end_layout
+
+\begin_layout Standard
+ 
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+noindent
+\end_layout
+
+\end_inset
+
+ (the actual model uses UTF-8 symbols: 
+\begin_inset Formula $\theta$
+\end_inset
+
+ instead of 
+\family typewriter
+th
+\family default
+, 
+\begin_inset Formula $\delta$
+\end_inset
+
+ instead of 
+\family typewriter
+d
+\family default
+). Numeric constants are printed with full double precision, so that the conversion does not introduce any loss of accuracy.
+\end_layout
+
+\begin_layout Subsection
+Multithreading and the graphical interface
+\end_layout
+
+\begin_layout Standard
+The conversion runs in a separate worker thread (
+\family typewriter
+std::thread
+\family default
+), so the GUI stays responsive even while processing large networks. The worker thread periodically reports progress to the main (GUI) thread via 
+\family typewriter
+gui::thread::asyncExecInMainThread
+\family default
+, where the progress indicator and the status message are updated — fulfilling the requirement of real-time progress reporting on another thread. The output model is written through 
+\family typewriter
+std::ofstream
+\family default
+, and the content is additionally stored into the output archive (
+\family typewriter
+put()
+\family default
+), so it is also accessible from within the dTwin environment.
+\end_layout
+
+\begin_layout Subsection
+Building and delivery
+\end_layout
+
+\begin_layout Standard
+The project is built with CMake (C++20) on Linux, macOS and Windows; the accompanying 
+\family typewriter
+Makefile
+\family default
+ automatically fetches the dependencies (natID and dTwin as git submodules, plus the precompiled natID libraries for the matching platform), so 
+\family typewriter
+make
+\family default
+ works even after a plain 
+\family typewriter
+git clone
+\family default
+. The result is a dynamic library (
+\family typewriter
+cbpf.dll
+\family default
+/
+\family typewriter
+.dylib
+\family default
+/
+\family typewriter
+.so
+\family default
+) which is copied into 
+\family typewriter
+$HOME/ba.natID/plugins
+\family default
+ and loaded through the 
+\series bold
+Model 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ Import
+\series default
+ menu.
+\end_layout
+
+\begin_layout Section
+Results and validation
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:rezultati"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Test system
+\end_layout
+
+\begin_layout Standard
+The test case is MATPOWER 
+\family typewriter
+case9
+\family default
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "matpower"
+literal "false"
+
+\end_inset
+
+ — the standard WSCC network with 9 buses, 3 generators and 9 branches, 
+\begin_inset Formula $S_{base}=100$
+\end_inset
+
+
+\begin_inset space ~
+
+\end_inset
+
+MVA, widely used in the literature 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "sauer"
+literal "false"
+
+\end_inset
+
+. Figure
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:shema"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ shows the single-line diagram with the solved voltages.
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float figure
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Graphics 
+	filename diagrams/01_jednopolna_case9.png
+	width 78line%
+
+\end_inset
+
+ 
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Single-line diagram of 
+\family typewriter
+case9
+\family default
+ with the solved voltages (slack – red, PV – green, PQ – blue).
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:shema"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Validation methodology
+\end_layout
+
+\begin_layout Standard
+The correctness of the converter was checked on three independent levels; the third level uses the actual dTwin solver, while the first two use an independent Python/numpy implementation (
+\family typewriter
+validate.py
+\family default
+, 
+\family typewriter
+checks.py
+\family default
+) that does not share a single line of code with the C++ converter: 
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+Admittance matrix:
+\series default
+ the Y-bus generated by the converter matches the reference model 
+\family typewriter
+case9.dmodl
+\family default
+ to more than 10 significant digits. 
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+Residuals at the exact solution:
+\series default
+ substituting the known solution into the generated equations 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+, the largest residual equals 
+\begin_inset Formula $2.4\cdot10^{-13}$
+\end_inset
+
+ — at the level of double-precision round-off, confirming that the equations are correctly derived and printed. 
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+Solving the generated model:
+\series default
+ dTwin's 
+\family typewriter
+modSolver
+\family default
+ solves the model with status 
+\series bold
+OK
+\series default
+. 
+\end_layout
+
+\begin_layout Subsection
+Results
+\end_layout
+
+\begin_layout Standard
+Newton–Raphson converges from a flat start in 
+\series bold
+4 iterations
+\series default
+ (figure
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:konv"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+), with the characteristic quadratic decay of the residual. The obtained voltages and angles (table
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:rjesenje"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+) are identical to the reference power flow solution; the voltage profile is shown in figure
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:profil"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float table
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Tabular 
+<lyxtabular version="3" rows="10" columns="4">
+<features booktabs="true" tabularvalignment="middle" tabularwidth="0pt">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="right" valignment="top">
+<column alignment="right" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Bus 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Type 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $V$
+\end_inset
+
+ [p.u.] 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $\delta$
+\end_inset
+
+ [
+\begin_inset Formula $^\circ$
+\end_inset
+
+] 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+slack 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0400 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+0.00 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+2 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PV 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0250 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+9.28 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+3 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PV 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0250 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+4.67 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+4 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0258 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $-2.22$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+5 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0127 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $-3.69$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+6 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0324 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.97 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+7 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0159 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+0.73 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+8 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0258 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+3.72 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+9 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+0.9956 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $-3.99$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Solution of the generated model (dTwin 
+\family typewriter
+modSolver
+\family default
+). Reactive injections of the PV generators: 
+\begin_inset Formula $Q_2^g=0.0665$
+\end_inset
+
+, 
+\begin_inset Formula $Q_3^g=-0.1086$
+\end_inset
+
+ p.u.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:rjesenje"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float figure
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Graphics 
+	filename diagrams/04_konvergencija.png
+	width 72line%
+
+\end_inset
+
+ 
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Convergence of the Newton–Raphson procedure on the generated model: the residual decays quadratically and after four iterations equals 
+\begin_inset Formula $2.4\cdot10^{-13}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:konv"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float figure
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Graphics 
+	filename diagrams/03_profil_napona.png
+	width 60line%
+
+\end_inset
+
+ 
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Voltage profile over the buses of the solved 
+\family typewriter
+case9
+\family default
+ system.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:profil"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Discussion
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:diskusija"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The results confirm that the current balance formulation in polar coordinates yields a physically correct solution, identical to the classical power balance, with simpler analytical derivatives. The dense Y-bus representation is adequate for the target problem size; for networks with thousands of buses the natural extension is a sparse matrix structure and a sparse Jacobian. Further extensions include automatic enforcement of generator reactive power limits (PV
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+PQ switching), support for multiple voltage levels in the display, and conversion of larger MATPOWER cases (
+\family typewriter
+case39
+\family default
+, 
+\family typewriter
+case118
+\family default
+) for which the formulation remains unchanged.
+\end_layout
+
+\begin_layout Section
+Conclusion
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:zakljucak"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A C++ plugin-converter has been implemented and validated which, from a MATPOWER network description, generates a dTwin NL power flow model in the nonlinear current balance formulation in polar coordinates. The theoretical part derives the balance equations and shows their structural advantage over the power balance; the implementation part covers the entire path from parsing to a model ready for solving. The threefold validation — Y-bus agreement to 10+ digits, residuals of the order of 
+\begin_inset Formula $10^{-13}$
+\end_inset
+
+ at the exact solution and successful solving of the model by the dTwin solver in four iterations — shows that the conversion introduces neither modelling nor numerical error. All requirements of the topic are fulfilled: C++, conversion in a separate thread, real-time progress on the GUI thread, a graphical interface and delivery as a plugin (dynamic library).
+\end_layout
+
+\begin_layout Paragraph
+A note on the SDK.
+\end_layout
+
+\begin_layout Standard
+The Y-bus is built in the natID complex dense matrix (
+\family typewriter
+dense::CmplxMatrix
+\family default
+), and the plugin uses the official headers 
+\family typewriter
+arch/MemoryOut.h
+\family default
+ and 
+\family typewriter
+matrix/MatrixLib.h
+\family default
+. These headers did not exist in release v4.1.0, but are available since version 
+\series bold
+v4.2.0
+\series default
+ (i.e.
+\begin_inset space \space{}
+
+\end_inset
+
+the current 
+\emph on
+main
+\emph default
+ branch), so the build requires that or a newer version of the SDK; the precompiled libraries are fetched automatically from the v4.2.0 release.
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "kundur"
+literal "false"
+
+\end_inset
+
+ P.
+\begin_inset space \space{}
+
+\end_inset
+
+Kundur, 
+\emph on
+Power System Stability and Control
+\emph default
+, McGraw-Hill, 1994. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "sauer"
+literal "false"
+
+\end_inset
+
+ P.
+\begin_inset space \space{}
+
+\end_inset
+
+W.
+\begin_inset space \space{}
+
+\end_inset
+
+Sauer, M.
+\begin_inset space \space{}
+
+\end_inset
+
+A.
+\begin_inset space \space{}
+
+\end_inset
+
+Pai, 
+\emph on
+Power System Dynamics and Stability
+\emph default
+, 2007. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "milano"
+literal "false"
+
+\end_inset
+
+ F.
+\begin_inset space \space{}
+
+\end_inset
+
+Milano, 
+\emph on
+Power System Modelling and Scripting
+\emph default
+, Springer, 2010. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "tinney"
+literal "false"
+
+\end_inset
+
+ W.
+\begin_inset space \space{}
+
+\end_inset
+
+F.
+\begin_inset space \space{}
+
+\end_inset
+
+Tinney, C.
+\begin_inset space \space{}
+
+\end_inset
+
+E.
+\begin_inset space \space{}
+
+\end_inset
+
+Hart, 
+\begin_inset Quotes eld
+\end_inset
+
+Power Flow Solution by Newton's Method
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\emph on
+IEEE Trans.
+\begin_inset space \space{}
+
+\end_inset
+
+Power Apparatus and Systems
+\emph default
+, PAS-86(11), 1967. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "cim"
+literal "false"
+
+\end_inset
+
+ V.
+\begin_inset space \space{}
+
+\end_inset
+
+M.
+\begin_inset space \space{}
+
+\end_inset
+
+da Costa, N.
+\begin_inset space \space{}
+
+\end_inset
+
+Martins, J.
+\begin_inset space \space{}
+
+\end_inset
+
+L.
+\begin_inset space \space{}
+
+\end_inset
+
+R.
+\begin_inset space \space{}
+
+\end_inset
+
+Pereira, 
+\begin_inset Quotes eld
+\end_inset
+
+Developments in the Newton Raphson Power Flow Formulation Based on Current Injections
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\emph on
+IEEE Trans.
+\begin_inset space \space{}
+
+\end_inset
+
+Power Systems
+\emph default
+, 14(4), 1999. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "matpower"
+literal "false"
+
+\end_inset
+
+ R.
+\begin_inset space \space{}
+
+\end_inset
+
+D.
+\begin_inset space \space{}
+
+\end_inset
+
+Zimmerman, C.
+\begin_inset space \space{}
+
+\end_inset
+
+E.
+\begin_inset space \space{}
+
+\end_inset
+
+Murillo-Sánchez, R.
+\begin_inset space \space{}
+
+\end_inset
+
+J.
+\begin_inset space \space{}
+
+\end_inset
+
+Thomas, 
+\begin_inset Quotes eld
+\end_inset
+
+MATPOWER: Steady-State Operations, Planning and Analysis Tools for Power Systems Research and Education
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\emph on
+IEEE Trans.
+\begin_inset space \space{}
+
+\end_inset
+
+Power Systems
+\emph default
+, 26(1), 2011. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "natid"
+literal "false"
+
+\end_inset
+
+ I.
+\begin_inset space \space{}
+
+\end_inset
+
+Džafić, 
+\emph on
+natID
+\emph default
+ and 
+\emph on
+dTwin
+\emph default
+, 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+https://github.com/idzafic
+\end_layout
+
+\end_inset
+
+. 
+\end_layout
+
+\end_body
+\end_document
