@@ -1,0 +1,172 @@
+                  -`                     azra@a-arch
+                 .o+`                    ----------------------
+                `ooo/                    OS: Arch Linux x86_64
+               `+oooo:                   Host: 83KY (Legion 7 16IAX10)
+              `+oooooo:                  Kernel: Linux 7.0.14-arch1-1
+              -+oooooo+:                 Uptime: 1 day, 20 hours, 28 mins
+            `/:-:++oooo+:                Packages: 19 (flatpak), 1285 (pacman)
+           `/++++/+++++++:               Shell: zsh 5.9.1
+          `/++++++++++++++:              Display (SDC420B): 2560x1600 @ 1.25x in 16", 240 Hz [Built-in]
+         `/+++ooooooooooooo/`            WM: Hyprland 0.55.4 (Wayland)
+        ./ooosssso++osssssso+`           Theme: Breeze-Dark [GTK2], Breeze [GTK3]
+       .oossssso-````/ossssss+`          Icons: breeze [GTK2/3/4]
+      -osssssso.      :ssssssso.         Font: Noto Sans (10pt) [GTK2/3/4]
+     :osssssss/        osssso+++.        Cursor: breeze (24px)
+    /ossssssss/        +ssssooo/-        Terminal: tmux 3.7b
+  `/ossssso+/:-        -:/+osssso+-      CPU: Intel(R) Core(TM) Ultra 9 275HX (8+16) @ 5.40 GHz
+ `+sso+:-`                 `.-/+oso:     GPU 1: NVIDIA GeForce RTX 5070 Max-Q / Mobile [Discrete]
+`++:.                           `-/+/    GPU 2: Intel Graphics @ 1.90 GHz [Integrated]
+.`                                 `/    Memory: 13.00 GiB / 30.77 GiB (42%)
+                                         Swap: 0 B / 4.00 GiB (0%)
+                                         Disk (/): 259.05 GiB / 936.84 GiB (28%) - ext4
+                                         Local IP (wlp130s0): 192.168.1.216/24
+                                         Battery (L23N4PF1): 48% [Discharging]
+                                         Locale: en_US.UTF-8
+
+
+
+
+  ~/Azra/SREES_2026_Babic_CBPF
+❯ make run-dtwin
+make: *** No rule to make target 'run-dtwin'.  Stop.
+
+  ~/Azra/SREES_2026_Babic_CBPF
+❯ ls
+ __MACOSX   SREES_2026_Babic_CBPF
+
+  ~/Azra/SREES_2026_Babic_CBPF
+❯ cd SREES_2026_Babic_CBPF
+
+  ~/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF on  main ✘!+?
+❯ make run-dtwin
+cmake -S src/tools/cbgen -B build/cbgen -DCMAKE_BUILD_TYPE=Release
+-- natID SDK: /home/azra/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF/external/natID/natID.SDK
+-- Detected 24 CPU cores which will be used for compilation..
+-- x86 Architecture Detected!!
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/azra/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF/build/cbgen
+cmake --build build/cbgen --config Release -j
+make[1]: Entering directory '/home/azra/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF/build/cbgen'
+[100%] Built target cbgen
+make[1]: Leaving directory '/home/azra/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF/build/cbgen'
+LD_LIBRARY_PATH="/home/azra/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF/build/dTwin/usr/lib/x86_64-linux-gnu/dTwin" \
+	"build/dTwin/usr/bin/dTwin" "/home/azra/Azra/SREES_2026_Babic_CBPF/SREES_2026       _Babic_CBPF/build/case9_cb.dmodl"
+
+(process:1463723): Adwaita-WARNING **: 22:26:01.972: Using GtkSettings:gtk-application-prefer-dark-theme with libadwaita is unsupported. Please use AdwStyleManager:color-scheme instead.
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.021: Theme parser error: <data>:26:46-51: No property named "colfr"
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.021: Theme parser warning: <data>:32:100-101: Empty declaration
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.021: Theme parser error: <data>:40:96-97: Expected a number
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.021: A floating object was finalized. This means that someone
+called g_object_unref() on an object that had only a floating
+reference; the initial floating reference is not owned by anyone
+and must be removed with g_object_ref_sink().
+
+(dTwin:1463723): GLib-GObject-CRITICAL **: 22:26:02.050: g_param_spec_double: assertion 'default_value >= minimum && default_value <= maximum' failed
+
+(dTwin:1463723): GLib-GObject-CRITICAL **: 22:26:02.050: validate_pspec_to_install: assertion 'G_IS_PARAM_SPEC (pspec)' failed
+
+(dTwin:1463723): GLib-GObject-CRITICAL **: 22:26:02.050: g_param_spec_ref_sink: assertion 'G_IS_PARAM_SPEC (pspec)' failed
+
+(dTwin:1463723): GLib-GObject-CRITICAL **: 22:26:02.050: g_param_spec_unref: assertion 'G_IS_PARAM_SPEC (pspec)' failed
+
+(dTwin:1463723): Gtk-CRITICAL **: 22:26:02.052: Unable to parse accelerator '<Primary>?': ignored request to install accelerators
+
+(dTwin:1463723): Gtk-CRITICAL **: 22:26:02.052: Unable to parse accelerator '<Primary>,': ignored request to install accelerators
+
+(dTwin:1463723): Gtk-CRITICAL **: 22:26:02.142: gtk_widget_add_controller: assertion 'GTK_IS_EVENT_CONTROLLER (controller)' failed
+
+(dTwin:1463723): GLib-GObject-CRITICAL **: 22:26:02.142: g_object_set_is_valid_property: object class 'TextView' has no property named 'spell-checker-enabled'
+
+(dTwin:1463723): Gtk-CRITICAL **: 22:26:02.148: gtk_widget_add_controller: assertion 'GTK_IS_EVENT_CONTROLLER (controller)' failed
+
+(dTwin:1463723): GLib-GObject-CRITICAL **: 22:26:02.148: g_object_set_is_valid_property: object class 'TextView' has no property named 'spell-checker-enabled'
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.151: gtk_widget_size_allocate(): attempt to allocate GtkColumnView columnview 0x5591f4570a10 with width -2 and height 83
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.151: gtk_widget_size_allocate(): attempt to allocate GtkColumnListView listview 0x5591f4111270 with width 1650 and height -25
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.151: gtk_widget_size_allocate(): attempt to allocate GtkScrollbar scrollbar 0x5591f44cc170 with width -2 and height 24
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.152: Cannot begin irreversible action while in user action
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.152: Cannot end irreversible action while in user action
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.152: A floating object was finalized. This means that someone
+called g_object_unref() on an object that had only a floating
+reference; the initial floating reference is not owned by anyone
+and must be removed with g_object_ref_sink().
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.153: A floating object was finalized. This means that someone
+called g_object_unref() on an object that had only a floating
+reference; the initial floating reference is not owned by anyone
+and must be removed with g_object_ref_sink().
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.153: A floating object was finalized. This means that someone
+called g_object_unref() on an object that had only a floating
+reference; the initial floating reference is not owned by anyone
+and must be removed with g_object_ref_sink().
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.154: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x5591f45080a0 with width 25 and height -3
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.154: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x5591f4592760 with width 28 and height -3
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.154: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x5591f441a300 with width 24 and height -3
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:02.154: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x5591f43c1610 with width 16 and height -3
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:07.547: Finalizing GtkDrawingArea 0x5591f3826c70, but it still has children left:
+   - GtkPopover 0x5591f400c990
+
+(dTwin:1463723): Gtk-WARNING **: 22:26:07.547: Finalizing GtkDrawingArea 0x5591f401c110, but it still has children left:
+   - GtkPopover 0x5591f4016f70
+
+  ~/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF on  main ✘!+? took 5s
+❯ make validate
+.venv/bin/python src/tools/cbconv/validate.py
+== Referentno PF rjesenje (standardni NR, balans snaga) ==
+bus  |V|        delta[deg]
+ 1  1.040000  +0.0000
+ 2  1.025000  +9.2800
+ 3  1.025000  +4.6648
+ 4  1.025788  -2.2168
+ 5  1.012654  -3.6874
+ 6  1.032353  +1.9667
+ 7  1.015883  +0.7275
+ 8  1.025769  +3.7197
+ 9  0.995631  -3.9888
+
+== Max |rezidual strujnog balansa| u ref. rjesenju: 2.407e-13 ==
+   (treba biti ~0 -> formulacija je korektna)
+
+== NR nad strujnim balansom: konvergirao za 4 iteracija ==
+Max |V_cb - V_ref| = 2.531e-14  Max |delta_cb - delta_ref| = 1.071e-14
+   (treba biti ~0 -> strujni balans daje isto rjesenje kao standardni PF)
+.venv/bin/python src/tools/cbconv/checks.py
+======================================================
+DODATNE PROVJERE TAČNOSTI (case9)
+======================================================
+Ukupno opterećenje:        P = 315.0 MW,  Q = 115.0 MVAr
+Ukupna proizvodnja:        P = 319.64 MW
+Ukupni gubici (P):         4.641 MW      [MATPOWER poznato: ~4.64 MW]
+Snaga slack generatora B1: P = 71.64 MW  [MATPOWER: ~71.64 MW]
+                           Q = 27.05 MVAr
+Reaktivna snaga gen. B2:   Q = 6.65 MVAr [MATPOWER: ~6.65 MVAr]
+Reaktivna snaga gen. B3:   Q = -10.86 MVAr [MATPOWER: ~-10.9 MVAr]
+Provjera bilansa: gen - opt - gubici = 0.000000 MW  (treba ~0)
+
+Konvergencija (max |mismatch| po iteraciji):
+  iter 0:  1.63e+00
+  iter 1:  1.88e-01
+  iter 2:  2.15e-03
+  iter 3:  3.42e-07
+  iter 4:  2.39e-13
+
+SVG konvergencije: /home/azra/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF/docs/diagrams/04_konvergencija.svg
+
+  ~/Azra/SREES_2026_Babic_CBPF/SREES_2026_Babic_CBPF on  main ✘!+?
+❯
