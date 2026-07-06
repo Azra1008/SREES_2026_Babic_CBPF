@@ -1,0 +1,138 @@
+% Prezentacija (Beamer) — Seminarski SREES, Azra Babic (19029)
+% Kompajlirati: pdflatex Prezentacija_CBPF.tex  (dva puta)
+% Slike su u ./img/ . Konverzija u PPTX: kompajliraj u PDF pa uvezi/konvertuj.
+\documentclass[11pt,aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usecolortheme{whale}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{textcomp}
+\graphicspath{{img/}}
+\beamertemplatenavigationsymbolsempty
+
+\title[Konvertor strujnog balansa]{Konvertor nelinearnog strujnog balansa:\\ polarne koordinate}
+\author{Azra Babić (19029)}
+\institute{SREES 2026 \textbullet{} C++ plugin za dTwin (natID)}
+\date{}
+
+\begin{document}
+
+% 1
+\begin{frame}[plain]\titlepage\end{frame}
+
+% 2
+\begin{frame}{Zadatak}
+\begin{itemize}
+  \item Proračun tokova snaga: za zadane injekcije snaga naći napone $V$ i uglove $\delta$.
+  \item Metoda: nelinearni \textbf{strujni balans} ($\Delta I = 0$) u \textbf{polarnim} koordinatama.
+  \item Nije samo rješavač --- pravi se \textbf{konvertor}:
+  \begin{itemize}
+    \item čita MATPOWER \texttt{.m} $\rightarrow$ generiše dTwin \texttt{.dmodl} NL model $\rightarrow$ dTwin ga riješi.
+  \end{itemize}
+  \item Zahtjevi: C++, konverzija u zasebnoj niti, real-time progres na drugoj niti, GUI, plugin (\texttt{dll}).
+\end{itemize}
+\end{frame}
+
+% 3
+\begin{frame}{Teorija --- strujni balans}
+Proračunata struja: $I_i = \sum_k Y_{ik}V_k\,e^{j(\theta_{ik}+\delta_k)}$; \quad zadana: $I_i^{sp}=\frac{P_i-jQ_i}{V_i}e^{j\delta_i}$.
+
+\vspace{2mm}
+Jednačine (dvije po čvoru --- realni i imaginarni dio):
+\begin{align*}
+\sum_k Y_{ik}V_k\cos(\theta_{ik}+\delta_k) &= \frac{P_i\cos\delta_i + Q_i\sin\delta_i}{V_i}\\
+\sum_k Y_{ik}V_k\sin(\theta_{ik}+\delta_k) &= \frac{P_i\sin\delta_i - Q_i\cos\delta_i}{V_i}
+\end{align*}
+\begin{itemize}
+  \item \textbf{PQ}: nepoznate $\delta_i, V_i$. \quad \textbf{PV}: $\delta_i, Q_i^g$ ($V_i$ fiksan). \quad \textbf{Slack}: fiksno.
+  \item Rješava se Newton--Raphsonom (rijedak Jakobijan).
+\end{itemize}
+\end{frame}
+
+% 4
+\begin{frame}{Tok konverzije}
+\centering
+\includegraphics[width=0.98\linewidth]{02_tok_konverzije.png}
+\end{frame}
+
+% 5
+\begin{frame}{Implementacija (plugin)}
+\begin{itemize}
+  \item \texttt{sc::IPlugin} $\rightarrow$ \texttt{getPluginInterface()}; Model $\rightarrow$ Import; tip NL.
+  \item \texttt{Converter.h} --- jezgra: parsiranje, Y-bus, generisanje \texttt{.dmodl}.
+  \item \texttt{ViewConv.h} --- GUI: izbor datoteka, dugme, progres-bar, status.
+  \item Višenitnost:
+  \begin{itemize}
+    \item konverzija u \texttt{std::thread} radniku (ne blokira GUI),
+    \item progres na glavnoj niti: \texttt{gui::thread::asyncExecInMainThread}.
+  \end{itemize}
+  \item Izlaz: \texttt{.dmodl} preko \texttt{std::ofstream} + arhiva preko \texttt{put()}.
+\end{itemize}
+\end{frame}
+
+% 6
+\begin{frame}{Rezultat --- case9 (WSCC 9)}
+\centering
+\includegraphics[height=0.82\textheight]{01_jednopolna_case9.png}
+\end{frame}
+
+% 7
+\begin{frame}{Validacija (3 provjere)}
+\begin{columns}
+\begin{column}{0.54\linewidth}
+\begin{itemize}
+  \item Y-bus $=$ referentni \texttt{case9.dmodl} (10+ cifara).
+  \item Reziduali strujnog balansa u tačnom rješenju: $2.4\cdot10^{-13}$.
+  \item Newton--Raphson konvergira za 4 iteracije.
+  \item dTwin \texttt{modSolver} riješio model: \textbf{OK}.
+  \item PV čvorovi tačno izračunali $Q_g$.
+\end{itemize}
+\end{column}
+\begin{column}{0.44\linewidth}
+\includegraphics[width=\linewidth]{03_profil_napona.png}
+\end{column}
+\end{columns}
+\end{frame}
+
+% 8 — tabela poređenja
+\begin{frame}{Rezultat vs.\ referenca (case9)}
+\centering\small
+\begin{tabular}{c|cc|cc}
+\toprule
+Čvor & $V$ (dTwin) & $V$ (ref.) & $\delta\,[^\circ]$ (dTwin) & $\delta\,[^\circ]$ (ref.) \\
+\midrule
+1 & 1.0400 & 1.0400 & 0.00 & 0.00 \\
+2 & 1.0250 & 1.0250 & 9.28 & 9.28 \\
+3 & 1.0250 & 1.0250 & 4.66 & 4.66 \\
+4 & 1.0258 & 1.0258 & $-2.22$ & $-2.22$ \\
+5 & 1.0127 & 1.0127 & $-3.69$ & $-3.69$ \\
+6 & 1.0324 & 1.0324 & 1.97 & 1.97 \\
+7 & 1.0159 & 1.0159 & 0.73 & 0.73 \\
+8 & 1.0258 & 1.0258 & 3.72 & 3.72 \\
+9 & 0.9956 & 0.9956 & $-3.99$ & $-3.99$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{3mm}
+\footnotesize Lijevo: rješenje dTwin \texttt{modSolver}-a nad generisanim modelom.\\
+Referenca: standardno rješenje tokova snaga (MATPOWER \texttt{case9} / provjereni Newton--Raphson).\\
+\textbf{Poklapanje na 4+ decimale.}
+\end{frame}
+
+% 9
+\begin{frame}{Zaključak}
+\begin{itemize}
+  \item Konvertor strujnog balansa (polarno) --- implementiran i validiran.
+  \item Formulacija daje fizički ispravno rješenje (potvrđeno dTwin solverom).
+  \item Ispunjeni svi zahtjevi teme (C++, threading, GUI, plugin/\texttt{dll}).
+  \item Sve matrice preko natID-a: Y-bus u \texttt{dense::CmplxMatrix} (potrebna aktuelna/main verzija natID-a).
+\end{itemize}
+\vspace{3mm}
+\centering\large Hvala na pažnji!
+\end{frame}
+
+\end{document}

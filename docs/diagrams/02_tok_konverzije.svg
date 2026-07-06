@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 240" font-family="-apple-system,Helvetica Neue,Arial,sans-serif">
+<defs>
+<filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+  <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.22"/>
+</filter>
+<filter id="sh2" x="-30%" y="-30%" width="160%" height="160%">
+  <feDropShadow dx="0" dy="1.5" stdDeviation="1.8" flood-color="#000" flood-opacity="0.16"/>
+</filter>
+<marker id="ar" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto">
+  <path d="M0,0 L9,4.5 L0,9 z" fill="#5b6b7a"/></marker>
+</defs>
+<rect width="1060" height="240" fill="#FBFCFE"/>
+<text x="530.0" y="38" text-anchor="middle" font-size="19" font-weight="700" fill="#2F3B4C">Tok konverzije</text>
+<text x="530.0" y="58" text-anchor="middle" font-size="12.5" fill="#6b7886">plugin generiše model &#8226; dTwin ga rješava</text>
+<rect x="18" y="85" width="126" height="78" rx="12" fill="#EAF1F9" stroke="#4E79A7" stroke-width="2" filter="url(#sh2)"/>
+<text x="81" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#4E79A7">MATPOWER</text>
+<text x="81" y="138" text-anchor="middle" font-size="11" fill="#5b6b7a">(.m datoteka)</text>
+<line x1="145" y1="124" x2="160" y2="124" stroke="#5b6b7a" stroke-width="2.4" marker-end="url(#ar)"/>
+<rect x="162" y="85" width="126" height="78" rx="12" fill="#EAF1F9" stroke="#4E79A7" stroke-width="2" filter="url(#sh2)"/>
+<text x="225" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#4E79A7">Parsiranje</text>
+<text x="225" y="138" text-anchor="middle" font-size="11" fill="#5b6b7a">bus/gen/branch</text>
+<line x1="289" y1="124" x2="304" y2="124" stroke="#5b6b7a" stroke-width="2.4" marker-end="url(#ar)"/>
+<rect x="306" y="85" width="126" height="78" rx="12" fill="#EAF1F9" stroke="#4E79A7" stroke-width="2" filter="url(#sh2)"/>
+<text x="369" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#4E79A7">Y-bus</text>
+<text x="369" y="138" text-anchor="middle" font-size="11" fill="#5b6b7a">matrica admitansi</text>
+<line x1="433" y1="124" x2="448" y2="124" stroke="#5b6b7a" stroke-width="2.4" marker-end="url(#ar)"/>
+<rect x="450" y="85" width="126" height="78" rx="12" fill="#EAF1F9" stroke="#4E79A7" stroke-width="2" filter="url(#sh2)"/>
+<text x="513" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#4E79A7">Jednačine</text>
+<text x="513" y="138" text-anchor="middle" font-size="11" fill="#5b6b7a">strujnog balansa</text>
+<line x1="577" y1="124" x2="592" y2="124" stroke="#5b6b7a" stroke-width="2.4" marker-end="url(#ar)"/>
+<rect x="594" y="85" width="126" height="78" rx="12" fill="#FFF4E0" stroke="#E8A33D" stroke-width="2" filter="url(#sh2)"/>
+<text x="657" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#E8A33D">.dmodl</text>
+<text x="657" y="138" text-anchor="middle" font-size="11" fill="#5b6b7a">NL model</text>
+<line x1="721" y1="124" x2="736" y2="124" stroke="#5b6b7a" stroke-width="2.4" marker-end="url(#ar)"/>
+<rect x="738" y="85" width="126" height="78" rx="12" fill="#E7F3E9" stroke="#59A14F" stroke-width="2" filter="url(#sh2)"/>
+<text x="801" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#59A14F">dTwin solver</text>
+<text x="801" y="138" text-anchor="middle" font-size="11" fill="#5b6b7a">Newton–Raphson</text>
+<line x1="865" y1="124" x2="880" y2="124" stroke="#5b6b7a" stroke-width="2.4" marker-end="url(#ar)"/>
+<rect x="882" y="85" width="126" height="78" rx="12" fill="#E7F3E9" stroke="#59A14F" stroke-width="2" filter="url(#sh2)"/>
+<text x="945" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#59A14F">Naponi</text>
+<text x="945" y="138" text-anchor="middle" font-size="11" fill="#5b6b7a">V, δ</text>
+<rect x="250" y="200" width="16" height="16" rx="4" fill="#4E79A7"/>
+<text x="272" y="213" font-size="12" fill="#2F3B4C">plugin (konverzija)</text>
+<rect x="450" y="200" width="16" height="16" rx="4" fill="#E8A33D"/>
+<text x="472" y="213" font-size="12" fill="#2F3B4C">model</text>
+<rect x="650" y="200" width="16" height="16" rx="4" fill="#59A14F"/>
+<text x="672" y="213" font-size="12" fill="#2F3B4C">dTwin (rješavanje)</text>
+</svg>

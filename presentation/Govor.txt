@@ -1,0 +1,81 @@
+GOVOR ZA PREZENTACIJU (~6 min) — Azra Babić, 19029
+Tema: Konvertor nelinearnog strujnog balansa: polarne koordinate
+====================================================================
+
+[SLAJD 1 — Naslov]  (~20 s)
+Dobar dan. Ja sam Azra Babić i predstavit ću svoj seminarski rad pod
+nazivom „Konvertor nelinearnog strujnog balansa u polarnim koordinatama".
+Rad je realizovan kao C++ plugin za dTwin framework.
+
+[SLAJD 2 — Zadatak]  (~50 s)
+Cilj je proračun tokova snaga — za zadane injekcije snaga i topologiju
+mreže traže se naponi i uglovi u svim čvorovima.
+Klasično se taj sistem formira preko balansa snaga. Moja tema koristi
+alternativnu, ali ekvivalentnu formulaciju — balans struja, i to u
+polarnim koordinatama.
+Važno je naglasiti: moj plugin ne rješava sam sistem. On je konvertor —
+pročita opis mreže u MATPOWER formatu i od njega generiše dTwin model,
+koji onda rješava ugrađeni solver.
+Zahtjevi su bili: C++, konverzija u zasebnoj niti, prikaz napretka u
+realnom vremenu na drugoj niti, grafički interfejs, i isporuka u formi
+dinamičke biblioteke.
+
+[SLAJD 3 — Teorija]  (~60 s)
+Ukratko o metodi. Struja koju čvor prima iz mreže računa se kao suma
+preko Y-matrice — proizvod admitanse i napona susjednih čvorova. S druge
+strane, struja koju čvor „traži" izvodi se iz njegove zadane snage. Uslov
+balansa je da su te dvije struje jednake.
+Pošto je struja kompleksna veličina, dobijamo dvije jednačine po čvoru —
+za realni i imaginarni dio — i tu se, zbog polarnih koordinata, javljaju
+sinus i kosinus.
+Čvorovi se dijele na tri tipa: slack, gdje su napon i ugao poznati; PV,
+generatorski, gdje je napon fiksan a tražimo ugao i reaktivnu snagu; i PQ,
+potrošački, gdje tražimo napon i ugao.
+Sistem je nelinearan, pa ga dTwin rješava Newton–Raphson metodom.
+
+[SLAJD 4 — Tok konverzije]  (~35 s)
+Ovo je tok rada. Konvertor pročita MATPOWER datoteku, izgradi Y-matricu,
+ispiše jednačine strujnog balansa u dTwin .dmodl format, a onda dTwin
+solver to riješi Newton–Raphsonom i vrati napone. Plavo je moj dio —
+plugin; zeleno je dTwin.
+
+[SLAJD 5 — Implementacija]  (~55 s)
+Plugin implementira sc::IPlugin interfejs i pojavljuje se u meniju
+Model → Import. Jezgro je klasa Converter, koja radi parsiranje, gradnju
+Y-matrice i generisanje modela.
+Grafički dio nudi izbor ulazne i izlazne datoteke, dugme za konverziju i
+traku napretka.
+Što se tiče višenitnosti — konverzija se izvršava u zasebnoj radnoj niti,
+da glavni prozor ostane responzivan, a napredak se prikazuje u realnom
+vremenu preko natID mehanizma za sigurno ažuriranje GUI-ja iz radne niti.
+
+[SLAJD 6 — Rezultat]  (~45 s)
+Za test sam koristila standardni WSCC 9-čvorni sistem. Na shemi vidite
+rezultat: crveno je slack, zeleno generatori, plavo potrošači i čvorišta.
+Ispod svakog čvora je izračunati napon i ugao. Vidi se da su naponi blizu
+jedan po jedinici, da generatori imaju veće uglove a potrošači manje —
+što je fizički očekivano, jer snaga teče od generatora ka potrošačima.
+
+[SLAJD 7 — Validacija]  (~50 s)
+Rezultat sam validirala na tri načina. Prvo, Y-matrica koju konvertor
+izračuna poklapa se sa referentnim dTwin modelom do više od deset cifara.
+Drugo, reziduali mojih jednačina u tačnom rješenju su reda deset na minus
+trinaest, a Newton–Raphson konvergira za četiri iteracije. I treće, ono
+najvažnije — generisani model sam propustila kroz sam dTwin solver, koji
+ga je uspješno riješio, i dobiveni naponi odgovaraju poznatom tačnom
+rješenju. Također, PV čvorovi su korektno izračunali svoju reaktivnu snagu.
+
+[SLAJD 8 — Rezultat vs. referenca]  (~35 s)
+Na ovom slajdu je poređenje: lijevo su naponi i uglovi koje je izračunao
+dTwin-ov solver iz mog modela, a desno referentno rješenje — standardni
+rezultat za case9, poznat iz MATPOWER-a. Vidi se da se poklapaju na četiri
+i više decimala, na svakom čvoru. To je konačan dokaz da konvertor radi tačno.
+
+[SLAJD 9 — Zaključak]  (~40 s)
+Za kraj — implementiran je i validiran konvertor strujnog balansa u
+polarnim koordinatama, koji daje fizički ispravno rješenje, potvrđeno
+stvarnim dTwin solverom. Ispunjeni su svi zahtjevi teme.
+Za sve matrice sam, u skladu sa zahtjevom, koristila natID dense matricu —
+Y-bus je u dense::CmplxMatrix. Headeri za to su nedostajali u starijem release-u,
+ali su prisutni u aktuelnoj (main) verziji natID-a, koju sam koristila.
+Hvala na pažnji, spremna sam za pitanja.

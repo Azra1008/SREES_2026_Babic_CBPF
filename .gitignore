@@ -1,0 +1,6 @@
+build/
+Out/
+*.o
+.DS_Store
+~$*
+natID.RAMDisk/
