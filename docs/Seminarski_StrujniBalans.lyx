@@ -1,0 +1,2765 @@
+#LyX file created by tex2lyx 2.5
+\lyxformat 643
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin /Users/azra/Documents/SREES-01/docs/
+\textclass article
+\begin_preamble
+% Seminarski rad SREES — Azra Babic (19029)
+% Otvoriti u LyX-u:  File -> Import -> LaTeX (plain)   (ili kompajlirati: pdflatex, dva prolaza)
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf,skip=6pt]{caption}
+
+
+
+
+\graphicspath{{diagrams/}}
+\setlength{\emergencystretch}{2em}
+
+\title{\textbf{Konvertor nelinearnog strujnog balansa:\\ polarne koordinate}}
+\author{Azra Babić, index 19029 \\ Predmet: SREES \\ natID SDK v4.2.0 \textperiodcentered{} dTwin 1.2.53}
+\date{2026}
+
+
+\end_preamble
+\use_default_options false
+\maintain_unincluded_children no
+\language english
+\language_package none
+\inputencoding utf8
+\fontencoding T1
+\font_roman "lmodern" "default"
+\font_sans "default" "default"
+\font_typewriter "lmodern" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_roman_osf false
+\font_sans_osf false
+\font_typewriter_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype true
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize 11
+\spacing single
+\use_hyperref true
+\pdf_bookmarks 0
+\pdf_bookmarksnumbered 0
+\pdf_bookmarksopen 0
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks 0
+\pdf_pdfborder 0
+\pdf_colorlinks 1
+\pdf_backref false
+\pdf_pdfusetitle 0
+\pdf_quoted_options "linkcolor=cbpfblue,citecolor=cbpfblue,urlcolor=cbpfblue"
+\papersize a4
+\use_geometry true
+\leftmargin 2.4cm
+\topmargin 2.4cm
+\rightmargin 2.4cm
+\bottommargin 2.4cm
+\use_package amsmath 2
+\use_package amssymb 2
+\use_package cancel 0
+\use_package esint 1
+\use_package mathdots 0
+\use_package mathtools 0
+\use_package mhchem 0
+\use_package stackrel 0
+\use_package stmaryrd 0
+\use_package undertilde 0
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\crossref_package prettyref
+\use_minted 0
+\use_lineno false
+\customcolor cbpfblue 004388
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\change_bars false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\docbook_table_output 0
+\docbook_mathml_prefix 1
+\docbook_mathml_version 0
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+maketitle
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Abstract
+\noindent
+U radu je opisan razvoj i validacija konvertora koji iz MATPOWER opisa elektroenergetske mreže generiše nelinearni model tokova snaga u formulaciji 
+\emph on
+strujnog balansa u polarnim koordinatama
+\emph default
+, namijenjen rješavanju u dTwin okruženju. Konvertor je realizovan kao C++ plugin za dTwin (natID framework), s konverzijom u zasebnoj radnoj niti, prikazom napretka u realnom vremenu i grafičkim interfejsom. Prikazana je teorijska osnova formulacije, arhitektura konvertora i trostruka validacija na testnom sistemu WSCC 
+\family typewriter
+case9
+\family default
+: poklapanje matrice admitansi s referentnim modelom na više od deset značajnih cifara, reziduali jednačina u tačnom rješenju reda 
+\begin_inset Formula $10^{-13}$
+\end_inset
+
+, te uspješno rješavanje generisanog modela ugrađenim Newton–Raphson rješavačem u četiri iteracije.
+\end_layout
+
+\begin_layout Abstract
+
+\begin_inset VSpace medskip
+\end_inset
+
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+noindent
+\end_layout
+
+\end_inset
+
+
+\series bold
+Ključne riječi:
+\series default
+ tokovi snaga, strujni balans, polarne koordinate, Newton–Raphson, Y-bus, dTwin, natID, C++. 
+\end_layout
+
+\begin_layout Section
+Uvod
+\end_layout
+
+\begin_layout Standard
+Proračun tokova snaga (engl.
+\begin_inset space \space{}
+
+\end_inset
+
+
+\emph on
+power flow
+\emph default
+) osnovni je proračun u analizi elektroenergetskih sistema: za zadanu topologiju mreže, parametre grana i injekcije snaga u čvorovima traže se moduli napona 
+\begin_inset Formula $V_i$
+\end_inset
+
+ i fazni uglovi 
+\begin_inset Formula $\delta_i$
+\end_inset
+
+ u svim čvorovima, a iz njih tokovi snaga po granama i gubici. Na ovom proračunu počivaju praktično sve naprednije analize — planiranje razvoja mreže, procjena stanja, analiza sigurnosti pogona i optimizacija 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "kundur,milano"
+literal "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Klasično se sistem jednačina formira preko 
+\emph on
+balansa snaga
+\emph default
+: u svakom čvoru raskorak aktivne i reaktivne snage (
+\begin_inset Formula $\Delta P_i$
+\end_inset
+
+, 
+\begin_inset Formula $\Delta Q_i$
+\end_inset
+
+) mora biti jednak nuli. Ekvivalentna, ali strukturno drugačija alternativa jeste 
+\emph on
+balans struja
+\emph default
+ (engl.
+\begin_inset space \space{}
+
+\end_inset
+
+
+\emph on
+current injection / current balance
+\emph default
+), kod kojeg se nula traži u raskoraku kompleksne struje čvora 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "cim"
+literal "false"
+
+\end_inset
+
+. Ovaj rad koristi upravo tu formulaciju, i to u 
+\series bold
+polarnim koordinatama
+\series default
+: nepoznate ostaju 
+\begin_inset Formula $V_i$
+\end_inset
+
+ i 
+\begin_inset Formula $\delta_i$
+\end_inset
+
+, kao u klasičnom polarnom Newton–Raphson postupku 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "tinney"
+literal "false"
+
+\end_inset
+
+, ali su jednačine algebarski jednostavnije jer napon posmatranog čvora ne množi cijelu sumu po susjednim čvorovima.
+\end_layout
+
+\begin_layout Standard
+Zadatak rada nije izrada rješavača, nego 
+\series bold
+konvertora
+\series default
+: C++ plugin za framework 
+\series bold
+dTwin
+\series default
+ koji iz opisa mreže u MATPOWER 
+\family typewriter
+.m
+\family default
+ formatu 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "matpower"
+literal "false"
+
+\end_inset
+
+ generiše tekstualni 
+\family typewriter
+.dmodl
+\family default
+ nelinearni (NL) model sa jednačinama strujnog balansa. Generisani model zatim rješava ugrađeni nelinearni rješavač dTwin-a (Newton–Raphson). Postavljeni zahtjevi teme su u cijelosti ispoštovani: 
+\end_layout
+
+\begin_layout Itemize
+implementacija u jeziku C++ nad natID SDK-om 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "natid"
+literal "false"
+
+\end_inset
+
+; 
+\end_layout
+
+\begin_layout Itemize
+konverzija se izvršava u 
+\emph on
+zasebnoj radnoj niti
+\emph default
+; 
+\end_layout
+
+\begin_layout Itemize
+napredak konverzije prikazuje se u 
+\emph on
+realnom vremenu
+\emph default
+ na GUI niti; 
+\end_layout
+
+\begin_layout Itemize
+grafički interfejs za izbor ulazne i izlazne datoteke; 
+\end_layout
+
+\begin_layout Itemize
+isporuka u formi dinamičke biblioteke (
+\family typewriter
+dll
+\family default
+/
+\family typewriter
+dylib
+\family default
+/
+\family typewriter
+so
+\family default
+) koja se učitava kroz meni 
+\series bold
+Model 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ Import
+\series default
+. 
+\end_layout
+
+\begin_layout Standard
+Rad je organizovan na sljedeći način. U poglavlju
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:teorija"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ izvedena je matematička osnova: matrica admitansi, jednačine strujnog balansa u polarnim koordinatama, poređenje s balansom snaga i Newton–Raphson postupak. Poglavlje 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:impl"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ opisuje arhitekturu i implementaciju konvertora, a poglavlje 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:rezultati"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ metodologiju validacije i rezultate na testnom sistemu 
+\family typewriter
+case9
+\family default
+. Poglavlje
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:zakljucak"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ daje zaključak.
+\end_layout
+
+\begin_layout Section
+Teorijska osnova
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:teorija"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Model mreže
+\end_layout
+
+\begin_layout Standard
+Sve veličine izražavaju se u relativnim jedinicama (p.u.) u odnosu na baznu snagu 
+\begin_inset Formula $S_{base}$
+\end_inset
+
+. Grana se modelira standardnom 
+\begin_inset Formula $\pi$
+\end_inset
+
+-shemom: serijska impedansa 
+\begin_inset Formula $r+jx$
+\end_inset
+
+, ukupna otočna susceptansa 
+\begin_inset Formula $b$
+\end_inset
+
+ (po polovina na svakom kraju) i, za transformatorske grane, kompleksni prijenosni odnos 
+\begin_inset Formula $a = t\,e^{j\varphi}$
+\end_inset
+
+ koji obuhvata i regulaciju modula (
+\begin_inset Formula $t$
+\end_inset
+
+) i fazni pomak (
+\begin_inset Formula $\varphi$
+\end_inset
+
+). Otočni elementi čvora (kompenzacija) zadaju se kao 
+\begin_inset Formula $G_s + jB_s$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Matrica admitansi (Y-bus)
+\end_layout
+
+\begin_layout Standard
+Mreža se kompaktno opisuje matricom admitansi 
+\begin_inset Formula $\mathbf{Y}$
+\end_inset
+
+, uz vezu 
+\begin_inset Formula $\mathbf{I}=\mathbf{Y}\mathbf{V}$
+\end_inset
+
+, tj.
+\begin_inset space \space{}
+
+\end_inset
+
+
+\begin_inset Formula $I_i=\sum_k Y_{ik}V_k$
+\end_inset
+
+. Za granu 
+\begin_inset Formula $f$
+\end_inset
+
+–
+\begin_inset Formula $t$
+\end_inset
+
+ sa serijskom admitansom 
+\begin_inset Formula $y=1/(r+jx)$
+\end_inset
+
+ i otočnom 
+\begin_inset Formula $b_{sh}=j\,b/2$
+\end_inset
+
+ doprinosi matrici admitansi glase: 
+\begin_inset Formula \begin{equation}
+Y_{ff}\mathrel{+}=\frac{y+b_{sh}}{a\,a^{*}},\qquad
+Y_{tt}\mathrel{+}=y+b_{sh},\qquad
+Y_{ft}\mathrel{+}=-\frac{y}{a^{*}},\qquad
+Y_{tf}\mathrel{+}=-\frac{y}{a}.
+\label{eq:ybus}
+\end{equation}
+\end_inset
+
+Otočni elementi čvora 
+\begin_inset Formula $(G_s+jB_s)$
+\end_inset
+
+ dodaju se na odgovarajući dijagonalni element. Matrica je za realne mreže izrazito rijetka — broj nenultih elemenata raste linearno s brojem grana. U polarnom obliku elementi se zapisuju kao 
+\begin_inset Formula $Y_{ik}=Y_{ik}e^{j\theta_{ik}}$
+\end_inset
+
+, a naponi kao 
+\begin_inset Formula $V_k=V_k e^{j\delta_k}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Jednačine strujnog balansa u polarnim koordinatama
+\end_layout
+
+\begin_layout Standard
+Struja koju čvor 
+\begin_inset Formula $i$
+\end_inset
+
+ prima iz mreže računa se direktno iz matrice admitansi: 
+\begin_inset Formula \begin{equation}
+I_i^{calc}=\sum_k Y_{ik}V_k\,e^{j(\theta_{ik}+\delta_k)}
+\quad\Longrightarrow\quad
+\Re\{I_i^{calc}\}=\sum_k Y_{ik}V_k\cos(\theta_{ik}+\delta_k),\qquad
+\Im\{I_i^{calc}\}=\sum_k Y_{ik}V_k\sin(\theta_{ik}+\delta_k).
+\label{eq:icalc}
+\end{equation}
+\end_inset
+
+S druge strane, struja koju čvor 
+\begin_inset Quotes eld
+\end_inset
+
+traži
+\begin_inset Quotes erd
+\end_inset
+
+ slijedi iz njegove zadane prividne snage 
+\begin_inset Formula $S_i=P_i+jQ_i=V_iI_i^{*}$
+\end_inset
+
+: 
+\begin_inset Formula \begin{equation}
+I_i^{sp}=\left(\frac{S_i}{V_i e^{j\delta_i}}\right)^{*}
+        =\frac{P_i-jQ_i}{V_i}\,e^{j\delta_i}.
+\label{eq:isp}
+\end{equation}
+\end_inset
+
+Uslov balansa 
+\begin_inset Formula $I_i^{calc}=I_i^{sp}$
+\end_inset
+
+, razdvojen na realni i imaginarni dio, daje dvije jednačine po čvoru: 
+\begin_inset Formula \begin{align}
+\sum_k Y_{ik}V_k\cos(\theta_{ik}+\delta_k) &= \frac{P_i\cos\delta_i+Q_i\sin\delta_i}{V_i},
+\label{eq:cbre}\\
+\sum_k Y_{ik}V_k\sin(\theta_{ik}+\delta_k) &= \frac{P_i\sin\delta_i-Q_i\cos\delta_i}{V_i}.
+\label{eq:cbim}
+\end{align}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Poređenje s balansom snaga
+\end_layout
+
+\begin_layout Standard
+Klasična jednačina balansa aktivne snage glasi 
+\begin_inset Formula $V_i\sum_k Y_{ik}V_k\cos(\delta_i-\theta_{ik}-\delta_k)=P_i$
+\end_inset
+
+ (analogno za 
+\begin_inset Formula $Q_i$
+\end_inset
+
+). Razlika prema 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ je strukturna: kod balansa snaga napon posmatranog čvora 
+\begin_inset Formula $V_i$
+\end_inset
+
+ množi cijelu sumu, pa se pojavljuje u svakom članu reziduala i svim izvodima; kod balansa struja lijeva strana je 
+\emph on
+linearna
+\emph default
+ po svakom 
+\begin_inset Formula $V_k$
+\end_inset
+
+, a nelinearnost po 
+\begin_inset Formula $V_i$
+\end_inset
+
+ ograničena je na desnu stranu (član 
+\begin_inset Formula $1/V_i$
+\end_inset
+
+). Rezidual i Jakobijan su, dakle, izvedeni iz 
+\series bold
+struja
+\series default
+, što pojednostavljuje analitičke izvode i implementaciju 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "cim"
+literal "false"
+
+\end_inset
+
+. Obje formulacije imaju identično rješenje — biraju se prema pogodnosti implementacije.
+\end_layout
+
+\begin_layout Subsection
+Newton–Raphsonova metoda
+\end_layout
+
+\begin_layout Standard
+Sistem 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ zapisuje se kao 
+\begin_inset Formula $\mathbf{f}(\mathbf{x})=\mathbf{0}$
+\end_inset
+
+ s vektorom nepoznatih 
+\begin_inset Formula $\mathbf{x}=[\boldsymbol{\delta},\mathbf{V}]$
+\end_inset
+
+ i rješava iterativno 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "tinney"
+literal "false"
+
+\end_inset
+
+: 
+\begin_inset Formula \begin{equation}
+\mathbf{J}^{(\nu)}\,\Delta\mathbf{x}^{(\nu)}=-\mathbf{f}(\mathbf{x}^{(\nu)}),
+\qquad
+\mathbf{x}^{(\nu+1)}=\mathbf{x}^{(\nu)}+\Delta\mathbf{x}^{(\nu)},
+\label{eq:nr}
+\end{equation}
+\end_inset
+
+gdje je 
+\begin_inset Formula $\mathbf{J}=\partial(\Delta I^{\Re},\Delta I^{\Im})/\partial(\boldsymbol{\delta},\mathbf{V})$
+\end_inset
+
+ rijedak Jakobijan iste strukture kao 
+\begin_inset Formula $\mathbf{Y}$
+\end_inset
+
+. Vandijagonalni izvodi slijede direktno iz 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:icalc"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ i posebno su jednostavni: 
+\begin_inset Formula \begin{equation}
+\frac{\partial f_i^{\Re}}{\partial \delta_k}=-Y_{ik}V_k\sin(\theta_{ik}+\delta_k),
+\qquad
+\frac{\partial f_i^{\Re}}{\partial V_k}=Y_{ik}\cos(\theta_{ik}+\delta_k),
+\qquad k\neq i,
+\label{eq:jac}
+\end{equation}
+\end_inset
+
+(analogno za 
+\begin_inset Formula $f_i^{\Im}$
+\end_inset
+
+, uz zamjenu 
+\begin_inset Formula $\sin\leftrightarrow\cos$
+\end_inset
+
+ i predznak), dok dijagonalni članovi dobijaju još i doprinos desne strane 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+. Početna tačka je ravni start (
+\begin_inset Formula $V_i=1$
+\end_inset
+
+
+\begin_inset space ~
+
+\end_inset
+
+p.u., 
+\begin_inset Formula $\delta_i=0$
+\end_inset
+
+), a iteracije se zaustavljaju kada najveći rezidual padne ispod zadane tolerancije. U blizini rješenja konvergencija je kvadratna — broj tačnih cifara se u svakoj iteraciji približno udvostručuje, što je i eksperimentalno potvrđeno u poglavlju
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:rezultati"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Tipovi čvorova
+\end_layout
+
+\begin_layout Standard
+U formulaciji učestvuju tri standardna tipa čvorova (tabela
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:tipovi"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+). Kod PV čvorova modul napona je fiksan parametar, a nepoznata postaje reaktivna injekcija generatora 
+\begin_inset Formula $Q_i^{g}$
+\end_inset
+
+ — u Jakobijanu se kolona izvoda po 
+\begin_inset Formula $V_i$
+\end_inset
+
+ zamjenjuje kolonom izvoda po 
+\begin_inset Formula $Q_i^{g}$
+\end_inset
+
+, koji su također jednostavni jer se 
+\begin_inset Formula $Q_i^{g}$
+\end_inset
+
+ pojavljuje samo na desnoj strani 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float table
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Tabular 
+<lyxtabular version="3" rows="4" columns="4">
+<features booktabs="true" tabularvalignment="middle" tabularwidth="0pt">
+<column alignment="left" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="left" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Tip čvora 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Zadano 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Nepoznato 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Jednačine po čvoru 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Slack (referentni) 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $V_i,\ \delta_i$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+— (
+\begin_inset Formula $P^g_i,Q^g_i$
+\end_inset
+
+ naknadno) 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+0 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PV (generatorski) 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $P_i,\ |V_i|$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $\delta_i,\ Q_i^{g}$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+2 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ (potrošački) 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $P_i,\ Q_i$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $\delta_i,\ V_i$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+2 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Tipovi čvorova i raspodjela poznatih i nepoznatih veličina.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:tipovi"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Implementacija
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:impl"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Arhitektura konvertora
+\end_layout
+
+\begin_layout Standard
+Konvertor je realizovan kao 
+\series bold
+dTwin plugin
+\series default
+ (interfejs 
+\family typewriter
+sc::IPlugin
+\family default
+) i pokriva cijeli tok od ulazne datoteke do modela spremnog za rješavanje: 
+\begin_inset Formula \begin{equation*}
+\text{MATPOWER \texttt{.m}}
+\;\rightarrow\;
+\text{parsiranje}
+\;\rightarrow\;
+\text{Y-bus}
+\;\rightarrow\;
+\text{\texttt{.dmodl} NL model}
+\;\rightarrow\;
+\text{dTwin NL rješavač}.
+\end{equation*}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float figure
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Graphics 
+	filename diagrams/02_tok_konverzije.png
+	width 100line%
+
+\end_inset
+
+ 
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Tok konverzije: plugin parsira mrežu, gradi Y-bus i generiše model; dTwin ga učitava i rješava.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:tok"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+
+\series bold
+Struktura koda
+\series default
+ (
+\family typewriter
+src/CurrentBalancePlugin/
+\family default
+): 
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+Converter.h
+\family default
+ — jezgra konvertora: parsiranje MATPOWER matrica, izgradnja Y-bus matrice u natID tipu 
+\family typewriter
+dense::CmplxMatrix
+\family default
+, generisanje 
+\family typewriter
+.dmodl
+\family default
+ izlaza; 
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+CBPlugin.cpp
+\family default
+ — implementacija 
+\family typewriter
+sc::IPlugin
+\family default
+ i izvozna tačka 
+\family typewriter
+getPluginInterface()
+\family default
+; 
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+WindowPlugin.h
+\family default
+ — prozor plugina unutar dTwin okruženja; 
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+ViewConv.h
+\family default
+ — grafički interfejs (izbor datoteka, dugme 
+\emph on
+Konvertuj
+\emph default
+, progres-indikator, statusna poruka) i višenitna logika. 
+\end_layout
+
+\begin_layout Subsection
+Parsiranje MATPOWER formata
+\end_layout
+
+\begin_layout Standard
+Ulazna 
+\family typewriter
+.m
+\family default
+ datoteka sadrži baznu snagu 
+\family typewriter
+baseMVA
+\family default
+ i tri matrice: 
+\family typewriter
+bus
+\family default
+ (čvorovi: tip, opterećenje 
+\begin_inset Formula $P_d,Q_d$
+\end_inset
+
+, otočni 
+\begin_inset Formula $G_s,B_s$
+\end_inset
+
+, početni napon), 
+\family typewriter
+gen
+\family default
+ (generatori: čvor, 
+\begin_inset Formula $P_g,Q_g$
+\end_inset
+
+, zadani 
+\begin_inset Formula $|V|$
+\end_inset
+
+) i 
+\family typewriter
+branch
+\family default
+ (grane: 
+\begin_inset Formula $r$
+\end_inset
+
+, 
+\begin_inset Formula $x$
+\end_inset
+
+, 
+\begin_inset Formula $b$
+\end_inset
+
+, prijenosni odnos 
+\begin_inset Formula $t$
+\end_inset
+
+ i fazni pomak 
+\begin_inset Formula $\varphi$
+\end_inset
+
+). Parser tolerira komentare i razmake, numeraciju čvorova preslikava u kontinuirane indekse, a sve snage normalizuje na p.u.
+\begin_inset space \space{}
+
+\end_inset
+
+dijeljenjem sa 
+\family typewriter
+baseMVA
+\family default
+. Injekcija čvora računa se kao razlika generacije i potrošnje, 
+\begin_inset Formula $P_i = P_{g,i}-P_{d,i}$
+\end_inset
+
+, 
+\begin_inset Formula $Q_i = Q_{g,i}-Q_{d,i}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Izgradnja Y-bus matrice
+\end_layout
+
+\begin_layout Standard
+Y-bus se gradi jednim prolazom kroz listu grana prema 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:ybus"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+, u kompleksnoj natID matrici 
+\family typewriter
+dense::CmplxMatrix
+\family default
+; otočni elementi čvorova dodaju se na dijagonalu u drugom prolazu. Za ciljne dimenzije zadatka (deseci do stotine čvorova) gusta reprezentacija je jednostavna i dovoljno brza, a prelazak na rijetku strukturu ostaje otvoren pravac za veće sisteme (poglavlje
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:diskusija"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Subsection
+Generisanje 
+\family typewriter
+.dmodl
+\family default
+ modela
+\end_layout
+
+\begin_layout Standard
+Izlaz je tekstualni dTwin NL model: promjenljive (
+\begin_inset Formula $\delta_i$
+\end_inset
+
+, 
+\begin_inset Formula $V_i$
+\end_inset
+
+, te 
+\begin_inset Formula $Q_i^g$
+\end_inset
+
+ za PV čvorove), parametri i po dvije jednačine strujnog balansa po čvoru. Primjer za PQ čvor 5 (skraćeno): 
+\size small
+
+\end_layout
+
+\begin_layout Verbatim
+Y_5_5*V_5*cos(th_5_5+d_5)+... = (P_5*cos(d_5)+Q_5*sin(d_5))/V_5
+\end_layout
+
+\begin_layout Verbatim
+Y_5_5*V_5*sin(th_5_5+d_5)+... = (P_5*sin(d_5)-Q_5*cos(d_5))/V_5
+\end_layout
+
+\begin_layout Standard
+ 
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+noindent
+\end_layout
+
+\end_inset
+
+ (u stvarnom modelu koriste se UTF-8 simboli: 
+\begin_inset Formula $\theta$
+\end_inset
+
+ umjesto 
+\family typewriter
+th
+\family default
+, 
+\begin_inset Formula $\delta$
+\end_inset
+
+ umjesto 
+\family typewriter
+d
+\family default
+). Numeričke konstante ispisuju se s punom dvostrukom preciznošću, kako konverzija ne bi unijela gubitak tačnosti.
+\end_layout
+
+\begin_layout Subsection
+Višenitnost i grafički interfejs
+\end_layout
+
+\begin_layout Standard
+Konverzija se izvršava u zasebnoj radnoj niti (
+\family typewriter
+std::thread
+\family default
+), pa GUI ostaje responzivan i tokom obrade velikih mreža. Radna nit periodično šalje napredak glavnoj (GUI) niti preko 
+\family typewriter
+gui::thread::asyncExecInMainThread
+\family default
+, gdje se ažuriraju progres-indikator i statusna poruka — čime je ispunjen zahtjev prikaza napretka u realnom vremenu na drugoj niti. Izlazni model piše se preko 
+\family typewriter
+std::ofstream
+\family default
+, a sadržaj se dodatno upisuje i u izlaznu arhivu (
+\family typewriter
+put()
+\family default
+), tako da je dostupan i kroz dTwin okruženje.
+\end_layout
+
+\begin_layout Subsection
+Prevođenje i isporuka
+\end_layout
+
+\begin_layout Standard
+Projekat se prevodi CMake-om (C++20) na Linuxu, macOS-u i Windowsu; priloženi 
+\family typewriter
+Makefile
+\family default
+ automatski povlači zavisnosti (natID i dTwin kao git submodule, te prekompajlirane natID biblioteke odgovarajuće platforme), pa 
+\family typewriter
+make
+\family default
+ radi i nakon običnog 
+\family typewriter
+git clone
+\family default
+. Rezultat je dinamička biblioteka (
+\family typewriter
+cbpf.dll
+\family default
+/
+\family typewriter
+.dylib
+\family default
+/
+\family typewriter
+.so
+\family default
+) koja se kopira u 
+\family typewriter
+$HOME/ba.natID/plugins
+\family default
+ i učitava kroz meni 
+\series bold
+Model 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ Import
+\series default
+.
+\end_layout
+
+\begin_layout Section
+Rezultati i validacija
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:rezultati"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Testni sistem
+\end_layout
+
+\begin_layout Standard
+Testni slučaj je MATPOWER 
+\family typewriter
+case9
+\family default
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "matpower"
+literal "false"
+
+\end_inset
+
+ — standardna WSCC mreža s 9 čvorova, 3 generatora i 9 grana, 
+\begin_inset Formula $S_{base}=100$
+\end_inset
+
+
+\begin_inset space ~
+
+\end_inset
+
+MVA, često korištena u literaturi 
+\begin_inset CommandInset citation
+LatexCommand cite
+after ""
+key "sauer"
+literal "false"
+
+\end_inset
+
+. Slika
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:shema"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ prikazuje jednopolnu shemu s riješenim naponima.
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float figure
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Graphics 
+	filename diagrams/01_jednopolna_case9.png
+	width 78line%
+
+\end_inset
+
+ 
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Jednopolna shema 
+\family typewriter
+case9
+\family default
+ sa riješenim naponima (slack – crveno, PV – zeleno, PQ – plavo).
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:shema"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Metodologija validacije
+\end_layout
+
+\begin_layout Standard
+Ispravnost konvertora provjerena je na tri nezavisna nivoa; treći nivo koristi stvarni dTwin rješavač, a prva dva nezavisnu Python/numpy implementaciju (
+\family typewriter
+validate.py
+\family default
+, 
+\family typewriter
+checks.py
+\family default
+) koja ne dijeli nijednu liniju koda sa C++ konvertorom: 
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+Matrica admitansi:
+\series default
+ Y-bus generisan konvertorom poklapa se s referentnim modelom 
+\family typewriter
+case9.dmodl
+\family default
+ na više od 10 značajnih cifara. 
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+Reziduali u tačnom rješenju:
+\series default
+ uvrštavanjem poznatog rješenja u generisane jednačine 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbre"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+–
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:cbim"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+ najveći rezidual iznosi 
+\begin_inset Formula $2.4\cdot10^{-13}$
+\end_inset
+
+ — na nivou zaokruživanja dvostruke preciznosti, što potvrđuje da su jednačine ispravno izvedene i ispisane. 
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+Rješavanje generisanog modela:
+\series default
+ dTwin-ov 
+\family typewriter
+modSolver
+\family default
+ rješava model sa statusom 
+\series bold
+OK
+\series default
+. 
+\end_layout
+
+\begin_layout Subsection
+Rezultati
+\end_layout
+
+\begin_layout Standard
+Newton–Raphson konvergira iz ravnog starta u 
+\series bold
+4 iteracije
+\series default
+ (slika
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:konv"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+), s karakterističnim kvadratnim opadanjem reziduala. Dobijeni naponi i uglovi (tabela
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:rjesenje"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+) identični su referentnom rješenju tokova snaga; profil napona prikazan je na slici
+\begin_inset space ~
+
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:profil"
+plural "false"
+caps "false"
+noprefix "false"
+nolink "false"
+tuple "list"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float table
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Tabular 
+<lyxtabular version="3" rows="10" columns="4">
+<features booktabs="true" tabularvalignment="middle" tabularwidth="0pt">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="right" valignment="top">
+<column alignment="right" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Čvor 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+Tip 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $V$
+\end_inset
+
+ [p.u.] 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $\delta$
+\end_inset
+
+ [
+\begin_inset Formula $^\circ$
+\end_inset
+
+] 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+slack 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0400 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+0.00 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+2 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PV 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0250 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+9.28 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+3 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PV 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0250 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+4.67 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+4 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0258 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $-2.22$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+5 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0127 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $-3.69$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+6 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0324 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.97 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+7 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0159 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+0.73 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+8 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+1.0258 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+3.72 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+9 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+PQ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+0.9956 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Standard
+
+\begin_inset Formula $-3.99$
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Rješenje generisanog modela (dTwin 
+\family typewriter
+modSolver
+\family default
+). Reaktivne injekcije PV generatora: 
+\begin_inset Formula $Q_2^g=0.0665$
+\end_inset
+
+, 
+\begin_inset Formula $Q_3^g=-0.1086$
+\end_inset
+
+ p.u.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:rjesenje"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float figure
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Graphics 
+	filename diagrams/04_konvergencija.png
+	width 72line%
+
+\end_inset
+
+ 
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Konvergencija Newton–Raphson postupka nad generisanim modelom: rezidual opada kvadratno i nakon četiri iteracije iznosi 
+\begin_inset Formula $2.4\cdot10^{-13}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:konv"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset Float figure
+placement !htb
+wide false
+sideways false
+status open
+
+
+\begin_layout Standard
+
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+\backslash
+centering
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset Graphics 
+	filename diagrams/03_profil_napona.png
+	width 60line%
+
+\end_inset
+
+ 
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Profil napona po čvorovima riješenog sistema 
+\family typewriter
+case9
+\family default
+.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:profil"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Diskusija
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:diskusija"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Rezultati potvrđuju da formulacija strujnog balansa u polarnim koordinatama daje fizički ispravno rješenje, identično klasičnom balansu snaga, uz jednostavnije analitičke izvode. Gusta Y-bus reprezentacija je primjerena ciljnoj veličini zadatka; za mreže sa hiljadama čvorova prirodno proširenje je rijetka struktura matrice i rijedak Jakobijan. Ostali pravci proširenja uključuju automatsko poštivanje granica reaktivne snage generatora (PV
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+PQ prekidanje), podršku za više naponskih nivoa u prikazu, te konverziju većih MATPOWER slučajeva (
+\family typewriter
+case39
+\family default
+, 
+\family typewriter
+case118
+\family default
+) za koje formulacija ostaje nepromijenjena.
+\end_layout
+
+\begin_layout Section
+Zaključak
+\end_layout
+
+\begin_layout Standard
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:zakljucak"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Implementiran je i validiran C++ plugin-konvertor koji iz MATPOWER opisa mreže generiše dTwin NL model tokova snaga u formulaciji nelinearnog strujnog balansa u polarnim koordinatama. Teorijski dio izvodi jednačine balansa i pokazuje njihovu strukturnu prednost nad balansom snaga; implementacioni dio pokriva cijeli tok od parsiranja do modela spremnog za rješavanje. Trostrukom validacijom — poklapanje Y-bus matrice na 10+ cifara, reziduali reda 
+\begin_inset Formula $10^{-13}$
+\end_inset
+
+ u tačnom rješenju i uspješno rješavanje modela dTwin-ovim rješavačem u četiri iteracije — pokazano je da konverzija ne unosi ni modelsku ni numeričku grešku. Ispunjeni su svi zahtjevi teme: C++, konverzija u zasebnoj niti, real-time progres na GUI niti, grafički interfejs i isporuka kao plugin (dinamička biblioteka).
+\end_layout
+
+\begin_layout Paragraph
+Napomena o SDK-u.
+\end_layout
+
+\begin_layout Standard
+Y-bus se gradi u natID kompleksnoj gustoj matrici (
+\family typewriter
+dense::CmplxMatrix
+\family default
+), a plugin koristi zvanične headere 
+\family typewriter
+arch/MemoryOut.h
+\family default
+ i 
+\family typewriter
+matrix/MatrixLib.h
+\family default
+. Ti headeri nisu postojali u release-u v4.1.0, ali su dostupni od verzije 
+\series bold
+v4.2.0
+\series default
+ (odnosno aktuelne 
+\emph on
+main
+\emph default
+ grane), pa build zahtijeva tu ili noviju verziju SDK-a; prekompajlirane biblioteke povlače se automatski iz v4.2.0 release-a.
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "kundur"
+literal "false"
+
+\end_inset
+
+ P.
+\begin_inset space \space{}
+
+\end_inset
+
+Kundur, 
+\emph on
+Power System Stability and Control
+\emph default
+, McGraw-Hill, 1994. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "sauer"
+literal "false"
+
+\end_inset
+
+ P.
+\begin_inset space \space{}
+
+\end_inset
+
+W.
+\begin_inset space \space{}
+
+\end_inset
+
+Sauer, M.
+\begin_inset space \space{}
+
+\end_inset
+
+A.
+\begin_inset space \space{}
+
+\end_inset
+
+Pai, 
+\emph on
+Power System Dynamics and Stability
+\emph default
+, 2007. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "milano"
+literal "false"
+
+\end_inset
+
+ F.
+\begin_inset space \space{}
+
+\end_inset
+
+Milano, 
+\emph on
+Power System Modelling and Scripting
+\emph default
+, Springer, 2010. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "tinney"
+literal "false"
+
+\end_inset
+
+ W.
+\begin_inset space \space{}
+
+\end_inset
+
+F.
+\begin_inset space \space{}
+
+\end_inset
+
+Tinney, C.
+\begin_inset space \space{}
+
+\end_inset
+
+E.
+\begin_inset space \space{}
+
+\end_inset
+
+Hart, 
+\begin_inset Quotes eld
+\end_inset
+
+Power Flow Solution by Newton's Method
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\emph on
+IEEE Trans.
+\begin_inset space \space{}
+
+\end_inset
+
+Power Apparatus and Systems
+\emph default
+, PAS-86(11), 1967. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "cim"
+literal "false"
+
+\end_inset
+
+ V.
+\begin_inset space \space{}
+
+\end_inset
+
+M.
+\begin_inset space \space{}
+
+\end_inset
+
+da Costa, N.
+\begin_inset space \space{}
+
+\end_inset
+
+Martins, J.
+\begin_inset space \space{}
+
+\end_inset
+
+L.
+\begin_inset space \space{}
+
+\end_inset
+
+R.
+\begin_inset space \space{}
+
+\end_inset
+
+Pereira, 
+\begin_inset Quotes eld
+\end_inset
+
+Developments in the Newton Raphson Power Flow Formulation Based on Current Injections
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\emph on
+IEEE Trans.
+\begin_inset space \space{}
+
+\end_inset
+
+Power Systems
+\emph default
+, 14(4), 1999. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "matpower"
+literal "false"
+
+\end_inset
+
+ R.
+\begin_inset space \space{}
+
+\end_inset
+
+D.
+\begin_inset space \space{}
+
+\end_inset
+
+Zimmerman, C.
+\begin_inset space \space{}
+
+\end_inset
+
+E.
+\begin_inset space \space{}
+
+\end_inset
+
+Murillo-Sánchez, R.
+\begin_inset space \space{}
+
+\end_inset
+
+J.
+\begin_inset space \space{}
+
+\end_inset
+
+Thomas, 
+\begin_inset Quotes eld
+\end_inset
+
+MATPOWER: Steady-State Operations, Planning and Analysis Tools for Power Systems Research and Education
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\emph on
+IEEE Trans.
+\begin_inset space \space{}
+
+\end_inset
+
+Power Systems
+\emph default
+, 26(1), 2011. 
+\end_layout
+
+\begin_layout Bibliography
+
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label ""
+key "natid"
+literal "false"
+
+\end_inset
+
+ I.
+\begin_inset space \space{}
+
+\end_inset
+
+Džafić, 
+\emph on
+natID
+\emph default
+ i 
+\emph on
+dTwin
+\emph default
+, 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+https://github.com/idzafic
+\end_layout
+
+\end_inset
+
+. 
+\end_layout
+
+\end_body
+\end_document
