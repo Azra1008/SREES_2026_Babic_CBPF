@@ -16,6 +16,7 @@
 #include <atomic>
 #include <functional>
 #include <dense/Matrix.h>   // natID kompleksna dense matrica (dense::CmplxMatrix) za Y-bus
+#include "DynEmit.h"        // generisanje dinamičkog (DAE) modela + .vmodl (grafici)
 
 namespace cb {
 
@@ -211,6 +212,81 @@ public:
         }
         o << "end\n";
         outText = o.str();
+        setP(100);
+        return true;
+    }
+
+    // Generiše DINAMIČKI (DAE) model + prateći .vmodl (grafici) sa izabranom smetnjom.
+    // Isti Y-bus (dense::CmplxMatrix) kao statički mod; dinamiku i grafike gradi DynEmit.h.
+    bool convertDynamic(std::string& outDModl, std::string& outVModl, const dyn::Options& optIn,
+                        const std::function<void(int)>& onProgress = {}, std::atomic<bool>* cancel = nullptr) {
+        auto setP = [&](int p){ if (onProgress) onProgress(p); };
+        auto stop = [&](){ return cancel && cancel->load(); };
+        setP(2);
+
+        const int n = (int)_bus.size();
+        std::map<int,int> id2i; for (int i=0;i<n;++i) id2i[_bus[i].id]=i;
+        std::map<int,std::vector<const Gen*>> gensAt;
+        for (auto& g : _gen) if (g.status >= 1) gensAt[g.bus].push_back(&g);
+
+        std::vector<int> type(n); int slackIdx = -1;
+        for (int i=0;i<n;++i){
+            int t=_bus[i].type;
+            if (t==PV && gensAt.find(_bus[i].id)==gensAt.end()) t=PQ;
+            type[i]=t; if (t==SLACK) slackIdx=i;
+        }
+        if (slackIdx<0){ _err="Nema slack čvora."; return false; }
+        if (stop()) return false;
+        setP(15);
+
+        // Y-bus u natID kompleksnoj dense matrici (isto kao statički mod).
+        dense::CmplxMatrix Y;
+        Y.reserve(n, n, nullptr, true);
+        auto ym = Y.getManipulator();
+        auto addY = [&](int i, int j, const cplx& v){ ym(i,j) = cplx(ym(i,j)) + v; };
+        std::vector<std::set<int>> nbr(n);
+        for (auto& br : _branch) {
+            if (br.status != 1) continue;
+            int fi=id2i[br.f], ti=id2i[br.t];
+            cplx y = (br.r!=0||br.x!=0)? cplx(1,0)/cplx(br.r,br.x) : cplx(0,0);
+            cplx bsh(0, br.b/2.0);
+            double ratio = (br.ratio==0)?1.0:br.ratio;
+            cplx a = std::polar(ratio, br.angle*M_PI/180.0);
+            addY(fi,fi,(y+bsh)/(a*std::conj(a))); addY(ti,ti,(y+bsh));
+            addY(fi,ti,-y/std::conj(a));           addY(ti,fi,-y/a);
+            nbr[fi].insert(ti); nbr[ti].insert(fi);
+        }
+        for (int i=0;i<n;++i)
+            if (_bus[i].Gs!=0||_bus[i].Bs!=0) addY(i,i,cplx(_bus[i].Gs,_bus[i].Bs)/_baseMVA);
+        if (stop()) return false;
+        setP(45);
+
+        // Popuni dyn::Grid iz natID matrice i podataka.
+        dyn::Grid G; G.n = n;
+        G.id.resize(n); G.type.resize(n); G.Yii.assign(n, cplx(0,0));
+        G.nbr = nbr; G.Pinj.assign(n,0); G.Qinj.assign(n,0); G.Vset.assign(n,1.0);
+        for (int i=0;i<n;++i){ G.id[i]=_bus[i].id; G.id2idx[_bus[i].id]=i; G.type[i]=type[i]; G.Yii[i]=cplx(ym(i,i)); }
+        for (int i=0;i<n;++i) for (int j:nbr[i]) G.Yij[{i,j}]=cplx(ym(i,j));
+        for (int i=0;i<n;++i){
+            double Pg=0,Qg=0; auto it=gensAt.find(_bus[i].id);
+            if (it!=gensAt.end()) for (auto* g:it->second){ Pg+=g->Pg; Qg+=g->Qg; }
+            G.Pinj[i]=(Pg-_bus[i].Pd)/_baseMVA; G.Qinj[i]=(Qg-_bus[i].Qd)/_baseMVA;
+        }
+        for (int i=0;i<n;++i){
+            auto it=gensAt.find(_bus[i].id);
+            if (type[i]==PV||type[i]==SLACK) G.Vset[i]=(it!=gensAt.end())?it->second[0]->Vg:_bus[i].Vm;
+        }
+        G.slackIdx=slackIdx; G.Vslack=G.Vset[slackIdx]; G.dSlack=_bus[slackIdx].Va*M_PI/180.0;
+        if (stop()) return false;
+        setP(65);
+
+        dyn::Options opt = optIn;
+        if (opt.distBusId < 0)  // auto: prvi PQ čvor s opterećenjem
+            for (int i=0;i<n;++i) if (type[i]==PQ && (G.Pinj[i]!=0||G.Qinj[i]!=0)){ opt.distBusId=G.id[i]; break; }
+
+        outDModl = dyn::buildDModl(G, opt);
+        setP(85);
+        outVModl = dyn::buildVModl(G, opt);
         setP(100);
         return true;
     }

@@ -23,7 +23,10 @@ class Plugin : public sc::IPlugin
 {
     MemoryArchiveContainer _outArchives;
     WindowPlugin* _pWnd = nullptr;
+    ModelType _modelType = ModelType::NL;   // NL (statički) ili DAE (dinamički mod)
 public:
+    void setModelType(ModelType t) { _modelType = t; }
+
     Plugin()
     {
         for (size_t i = 0; i < size_t(ArchType::NA); ++i)
@@ -56,7 +59,7 @@ public:
     MemoryArchiveContainer& getArchives() override final { return _outArchives; }
     td::String getOutFileName() const override final { assert(_pWnd); return _pWnd->getOutFileName(); }
     size_t getMaxSupportedArchiveParts() const override final { return size_t(ArchType::NA); }
-    ModelType getModelType() const override final { return ModelType::NL; } // nelinearni algebarski sistem
+    ModelType getModelType() const override final { return _modelType; } // NL (statički) / DAE (dinamički)
 
     void onClosedPluginWindow() { _pWnd = nullptr; }
 };
@@ -64,6 +67,11 @@ public:
 static Plugin s_plugin;
 
 void onClosedPluginWindow() { s_plugin.onClosedPluginWindow(); }
+
+// Poziva ViewConv nakon konverzije: postavlja tip modela (dinamički = DAE, inače NL).
+void setPluginDynamic(bool dynamic) {
+    s_plugin.setModelType(dynamic ? sc::IPlugin::ModelType::DAE : sc::IPlugin::ModelType::NL);
+}
 
 extern "C"
 {

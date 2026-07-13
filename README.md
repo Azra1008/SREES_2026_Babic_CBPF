@@ -5,6 +5,15 @@ Topic: **Nonlinear current balance converter: polar coordinates**
 
 A C++ plugin for [dTwin](https://github.com/idzafic/dTwin) (built on the [natID](https://github.com/idzafic/natID) framework) that takes a MATPOWER `.m` case file and generates a dTwin `.dmodl` nonlinear power flow model formulated as a **current balance** in polar coordinates. The model is then solved by dTwin's built-in Newton–Raphson solver.
 
+> ### 🔶 Update — dynamic mode (disturbances + graphs)
+>
+> Added after the initial submission, on the supervisor's request. Alongside the original
+> **static** current-balance power flow, the plugin now has a **dynamic (DAE) mode**: the user
+> picks a disturbance in the GUI (*load step/disconnect* or *short circuit*) and the converter
+> generates a **transient-stability model + graphs** that dTwin plots as the time response — so
+> the converter now produces a graphical output, not just a solved operating point.
+> Details in [**Dynamic mode**](#dynamic-mode-disturbances--graphs) below.
+
 ## Quick start
 
 ```bash
@@ -33,6 +42,8 @@ make test       # cbgen converts case9.m, pfsolve solves the resulting .dmodl
 make run-dtwin  # opens the generated .dmodl directly in the dTwin app
 make validate   # independent math check (creates .venv, installs numpy)
 make cbconv     # standalone converter — no natID needed, just a C++ compiler
+make dynsolve   # builds the headless DAE simulator
+make test-dyn   # generates a dynamic model (with a disturbance) and simulates it
 make clean      # removes the build/ folder
 ```
 
@@ -60,10 +71,12 @@ natID headers and CMake come from the submodule; the precompiled libraries (`mai
 ```
 docs/          Documentation (LyX/LaTeX .tex, .md) + diagrams (SVG/PNG)
 src/           Source code (CMake + C++)
-  CurrentBalancePlugin/   The main plugin (Converter.h — Y-bus in natID dense::CmplxMatrix)
-  tools/cbconv/           Standalone converter + validation (validate.py, checks.py, case9.m)
+  CurrentBalancePlugin/   The main plugin (Converter.h — Y-bus in natID dense::CmplxMatrix;
+                          DynEmit.h — dynamic DAE model + .vmodl graphs)
+  tools/cbconv/           Standalone converters + validation (cbconv.cpp, cbdyn.cpp, case9.m)
   tools/cbgen/            Headless converter runner (tests the core with natID matrices)
-  tools/pfsolve/          Solves a .dmodl with dTwin's modSolver (runtime test)
+  tools/pfsolve/          Solves a static .dmodl with dTwin's modSolver (NLE runtime test)
+  tools/dynsolve/         Simulates a dynamic .dmodl with dTwin's modSolver (DAE: reset+step)
 external/      Git submodules: natID (SDK), dTwin (models and examples)
 presentation/  Presentation (.pptx) + ReadMe.txt (talk duration)
 ```
@@ -76,6 +89,37 @@ presentation/  Presentation (.pptx) + ReadMe.txt (talk duration)
 4. dTwin loads and solves the generated model.
 
 The fastest way to see the result is `make run-dtwin` — it downloads the dTwin desktop app from the `SelectedSetups_<platform>.7z` archive ([natID releases](https://github.com/idzafic/natID/releases)) into `build/dTwin`, generates `case9_cb.dmodl` if it's missing, and opens it directly in dTwin. On Linux, dTwin needs OpenAL (Ubuntu: `sudo apt install libopenal1`, Arch: `sudo pacman -S openal`) — the target checks for missing system libraries and tells you exactly what to install.
+
+## Dynamic mode (disturbances + graphs)
+
+> **This is an update to the original seminar.** The first submission covered only the static
+> current-balance power flow; this section documents the later addition of time-domain simulation
+> with user-selected disturbances and graphical output, requested by the supervisor.
+
+Ticking **"Dinamicki model (smetnja + grafici)"** in the plugin GUI switches the converter from
+the static power flow to a **dynamic (DAE)** transient-stability model: a detailed generator
+(4th-order machine + AVR + governor) over the same Y-bus / current balance, plus a companion
+**`.vmodl`** that dTwin draws as graphs (the output). The model mirrors the reference
+`external/dTwin/examples/PowerSystem/Dynamics/case9_dyn.dmodl`.
+
+The user selects, in the GUI:
+
+- **Disturbance type** — *load step/disconnect* or *short circuit (voltage dip)*.
+- **Bus** (0 = auto, first load bus), **t start / end [s]**, and **magnitude** — for a load it is
+  a factor (0 = disconnect); for a short circuit it is the added shunt conductance `G` [p.u.]
+  (0 = default 5; keep ≲10 or the algebraic solve can oscillate at fault instant).
+
+After conversion dTwin receives the DAE model plus the graphs (rotor speed/frequency ω, rotor
+angles δ, bus voltages V, mechanical/electrical powers P) and plots the time response to the
+chosen disturbance.
+
+Headless validation (no GUI — runs the initialization and the time simulation through dTwin's solver):
+```bash
+make test-dyn   # cbdyn generates case9_cb_dyn.dmodl, dynsolve runs reset()+step()
+```
+Both disturbances simulate stably; the load response matches the reference `case9_dyn`. Ready
+reference outputs live in `src/tools/cbconv/out/case9_cb_dyn.*` and `case9_cb_short.*` — a `.dmodl`
+opened in dTwin next to its sibling `.vmodl` is drawn as graphs immediately.
 
 ## Validation (case9)
 

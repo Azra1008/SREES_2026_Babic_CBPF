@@ -11,6 +11,8 @@
 #                    (povuče dTwin i generiše model ako fale)
 #   make validate  — python validacija (sam napravi .venv + instalira requirements)
 #   make cbconv    — standalone konvertor (bez natID-a, samo C++ kompajler)
+#   make dynsolve  — headless simulator dinamičkog (DAE) modela
+#   make test-dyn  — cbdyn generiše DAE model sa smetnjom, dynsolve ga odsimulira
 #   make clean     — obriše build/ folder
 #
 #   make CONFIG=Debug     — debug build (default je Release)
@@ -69,7 +71,7 @@ define FETCH
 	curl -fL -o $(1) $(2) || wget -O $(1) $(2)
 endef
 
-.PHONY: all deps submodules plugin cbgen pfsolve cbconv test run-dtwin dtwin-app venv validate clean
+.PHONY: all deps submodules plugin cbgen pfsolve cbconv dynsolve cbdyn test test-dyn run-dtwin dtwin-app venv validate clean
 
 all: plugin cbgen pfsolve
 
@@ -140,6 +142,27 @@ $(MODEL): src/tools/cbconv/cases/case9.m | cbgen
 # ---- test: konverzija + rješavanje case9 ------------------------------------
 test: pfsolve $(MODEL)
 	$(RUNENV) $(BUILD_DIR)/pfsolve/out/pfsolve$(EXE) $(MODEL)
+
+# ---- dinamicki (DAE) mod: generisanje modela + headless simulacija ------------
+DYNMODEL := $(BUILD_DIR)/case9_cb_dyn.dmodl
+
+# standalone dinamicki konvertor (bez natID-a); treba DynEmit.h iz plugin src-a
+cbdyn:
+	@mkdir -p $(BUILD_DIR)/cbconv
+	$(CXX) -std=c++20 -O2 -I src/CurrentBalancePlugin/src -o $(BUILD_DIR)/cbconv/cbdyn$(EXE) src/tools/cbconv/cbdyn.cpp
+	@echo "== cbdyn: $(BUILD_DIR)/cbconv/cbdyn$(EXE)"
+
+dynsolve: $(DEPS_STAMP)
+	cmake -S src/tools/dynsolve -B $(BUILD_DIR)/dynsolve $(CMAKE_FLAGS)
+	cmake --build $(BUILD_DIR)/dynsolve --config $(CONFIG) -j
+
+# generisi dinamicki model: ispad opterecenja na cvoru 5, od t=0.5s do t=6s
+$(DYNMODEL): src/tools/cbconv/cases/case9.m | cbdyn
+	$(BUILD_DIR)/cbconv/cbdyn$(EXE) src/tools/cbconv/cases/case9.m $(DYNMODEL) 0 5 0.5 6 0
+
+# test-dyn: generisi DAE model + odsimuliraj ga (reset + step do t=8s)
+test-dyn: dynsolve $(DYNMODEL)
+	$(RUNENV) $(BUILD_DIR)/dynsolve/out/dynsolve$(EXE) $(DYNMODEL) 8
 
 # ---- dTwin aplikacija (SelectedSetups release arhiv) --------------------------
 dtwin-app: $(DTWIN_STAMP)

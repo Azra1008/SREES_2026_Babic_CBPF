@@ -1,0 +1,35 @@
+Header:
+	newTab = false
+end
+Model [name="Dinamički odziv — strujni balans (Azra Babic 19029)"]:
+	Plots:
+		linePlot [xLabel="Vrijeme [s]" yLabel="Brzina ω [p.u.]" name="Frekvencija (brzina rotora)"]:
+			@x << t
+			@y << ω_g1 [colorD=cyan width=2 name="ω_g1"]
+			@y << ω_g2 [colorD=orange width=2 name="ω_g2"]
+			@y << ω_g3 [colorD=magenta width=2 name="ω_g3"]
+			@y << ω_ref [colorD=white width=1 pattern="dot" name="ω_ref"]
+		end
+		linePlot [xLabel="Vrijeme [s]" yLabel="Ugao δ [rad]" name="Uglovi rotora"]:
+			@x << t
+			@y << δ_g1 [colorD=cyan width=2 name="δ_g1"]
+			@y << δ_g2 [colorD=orange width=2 name="δ_g2"]
+			@y << δ_g3 [colorD=magenta width=2 name="δ_g3"]
+		end
+		linePlot [xLabel="Vrijeme [s]" yLabel="Napon [p.u.]" name="Naponi čvorova"]:
+			@x << t
+			@y << V_1 [colorD=cyan width=2 name="V_1"]
+			@y << V_2 [colorD=orange width=2 name="V_2"]
+			@y << V_3 [colorD=magenta width=2 name="V_3"]
+			@y << V_5 [colorD=green width=2 pattern="dot" name="V_5 (smetnja)"]
+		end
+		linePlot [xLabel="Vrijeme [s]" yLabel="Snaga [p.u.]" name="Mehanička i električna snaga"]:
+			@x << t
+			@y << P_gm_g1 [colorD=cyan width=2 name="P_gm_g1"]
+			@y << Pe_g1 [colorD=cyan width=2 pattern="dot" name="Pe_g1"]
+			@y << P_gm_g2 [colorD=orange width=2 name="P_gm_g2"]
+			@y << Pe_g2 [colorD=orange width=2 pattern="dot" name="Pe_g2"]
+			@y << P_gm_g3 [colorD=magenta width=2 name="P_gm_g3"]
+			@y << Pe_g3 [colorD=magenta width=2 pattern="dot" name="Pe_g3"]
+		end
+end
